@@ -17,7 +17,7 @@ def check(bot: Bot, event: Event, perm: str) -> bool:
 def do_check(bot: Bot, event: Event, perm: str) -> Iterable[Optional[CheckResult]]:
     # 特定用户
     user = getattr(event, 'user_id', None) or event.get_user_id()
-    group, user_specific_found = get('user', user)
+    group, _ = get('user', user)
     yield group.check(perm)
 
     # Bot超级用户
@@ -25,10 +25,9 @@ def do_check(bot: Bot, event: Event, perm: str) -> Iterable[Optional[CheckResult
         group, _ = get('global', 'superuser')
         yield group.check(perm)
 
-    # 若没有特定用户的设置，则检查所有用户
-    if not user_specific_found:
-        group, _ = get('global', 'anyone')
-        yield group.check(perm)
+    # 所有用户
+    group, _ = get('global', 'anyone')
+    yield group.check(perm)
 
     # 群组
     if isinstance(event, GroupMessageEvent):
@@ -40,10 +39,12 @@ def do_check(bot: Bot, event: Event, perm: str) -> Iterable[Optional[CheckResult
             group, _ = get('global', 'group_owner')
             yield group.check(perm)
 
-        # 群组本身
-        group, found = get('group', event.group_id)
-        if not found:
-            group, _ = get('global', 'group')
+        # 特定群组
+        group, _ = get('group', event.group_id)
+        yield group.check(perm)
+
+        # 所有群组
+        group, _ = get('global', 'group')
         yield group.check(perm)
 
     # 私聊
