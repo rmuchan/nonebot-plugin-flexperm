@@ -1,0 +1,15 @@
+anyone: {}
+
+private: {}
+
+group: {}
+
+group_admin: {}
+
+group_owner:
+  inherits:
+    - global:group_admin
+
+superuser:
+  permissions:
+    - "*"
