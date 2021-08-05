@@ -96,7 +96,6 @@ class PluginHandler:
     def _parse_perm(self, perm: Iterable[str]) -> List[str]:
         result = []
         for p in perm:
-            p = p.strip()
             if not p:
                 result.append(self.name)
             elif p.startswith('/'):

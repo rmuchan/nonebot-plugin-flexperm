@@ -5,7 +5,7 @@ from typing import Optional, Union, Tuple, List, Set, Dict
 
 import nonebot
 from nonebot.log import logger
-from pydantic import BaseModel, parse_obj_as, constr
+from pydantic import BaseModel, parse_obj_as
 from ruamel.yaml import YAML, YAMLError
 
 from .config import c
@@ -240,7 +240,7 @@ class PermissionGroup:
                 item = item[1:]
             else:
                 target = self.allows
-            target.add(item.strip())
+            target.add(item)
 
         del self.referer
 
@@ -250,12 +250,12 @@ class GroupDesc(BaseModel):
     权限组描述。对应配置文件。
     """
 
-    permissions: List[constr(strip_whitespace=True)] = []
+    permissions: List[str] = []
     """
     授予或拒绝的权限列表。
     """
 
-    inherits: List[constr(strip_whitespace=True)] = []
+    inherits: List[str] = []
     """
     继承的权限组，每个元素为一个权限组名，可以表示为限定名（名称空间:组名），也可以不包含冒号，表示当前名称空间。
     """
