@@ -16,7 +16,8 @@ def check(bot: Bot, event: Event, perm: str) -> bool:
 
 def do_check(bot: Bot, event: Event, perm: str) -> Iterable[Optional[CheckResult]]:
     # 特定用户
-    group, user_specific_found = get('user', str(event.get_user_id()))
+    user = getattr(event, 'user_id', None) or event.get_user_id()
+    group, user_specific_found = get('user', user)
     yield group.check(perm)
 
     # Bot超级用户
@@ -40,7 +41,7 @@ def do_check(bot: Bot, event: Event, perm: str) -> Iterable[Optional[CheckResult
             yield group.check(perm)
 
         # 群组本身
-        group, found = get('group', str(event.group_id))
+        group, found = get('group', event.group_id)
         if not found:
             group, _ = get('global', 'group')
         yield group.check(perm)

@@ -5,4 +5,4 @@ from .plugin import register
 
 export().register = register
 
-globals().clear()
+del export, cmds, register

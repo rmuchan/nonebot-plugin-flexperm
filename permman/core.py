@@ -1,8 +1,9 @@
 from collections import OrderedDict
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Tuple, List, Set, Dict
+from typing import Optional, Union, Tuple, List, Set, Dict
 
+import nonebot
 from nonebot.log import logger
 from pydantic import BaseModel, parse_obj_as, constr
 from ruamel.yaml import YAML, YAMLError
@@ -10,12 +11,13 @@ from ruamel.yaml import YAML, YAMLError
 from .config import c
 
 yaml = YAML()
+nonebot_driver = nonebot.get_driver()
 
 loaded: Dict[str, "Namespace"] = {}
 plugin_namespaces: List["Namespace"] = []
 
 
-def get(namespace: str, group: str, referer: "PermissionGroup" = None, required: bool = False):
+def get(namespace: str, group: Union[str, int], referer: "PermissionGroup" = None, required: bool = False):
     """
     获取权限组。
 
@@ -41,6 +43,7 @@ def get_namespace(namespace: str, required: bool, path_override: Path = None) ->
     return ns
 
 
+@nonebot_driver.on_startup
 def reload():
     """
     使所有权限组在下一次使用时重新从配置加载。
@@ -51,14 +54,15 @@ def reload():
     # 默认权限组
     global_ = get_namespace('global', False)
     defaults = Namespace('global', True, Path(__file__).parent / 'defaults.yml', False)
-    for k, v in defaults.config:
+    for k, v in defaults.config.items():
         global_.config.setdefault(k, v)
 
     # 加载插件预设
     from .plugin import plugins
     for name, handler in plugins.items():
-        namespace = get_namespace(name, True, handler.preset)
-        plugin_namespaces.append(namespace)
+        if handler.preset:
+            namespace = get_namespace(name, True, handler.preset)
+            plugin_namespaces.append(namespace)
 
 
 class Namespace:
@@ -69,7 +73,7 @@ class Namespace:
     def __init__(self, namespace: str, required: bool, path: Optional[Path], modifiable: bool):
         self.name = namespace
         self.path = path
-        self.groups: Dict[str, PermissionGroup] = {}
+        self.groups: Dict[Union[str, int], PermissionGroup] = {}
         self.dirty = False
         self.modifiable = modifiable
 
@@ -89,7 +93,7 @@ class Namespace:
                 logger.error('Expect a dict: {} ({})', namespace, path)
                 doc = {}
 
-            self.config: Dict[str, dict] = doc
+            self.config: Dict[Union[str, int], dict] = doc
 
     def save(self):
         """
@@ -99,7 +103,7 @@ class Namespace:
             yaml.dump(self.config, self.path)
             self.dirty = False
 
-    def get_group(self, name: str, referer: Optional["PermissionGroup"], required: bool
+    def get_group(self, name: Union[str, int], referer: Optional["PermissionGroup"], required: bool
                   ) -> Tuple["PermissionGroup", bool]:
         """
         获取本名称空间下的权限组。
@@ -129,7 +133,7 @@ class Namespace:
         self.groups[name] = group
         return group, found
 
-    def _get_group_uncached(self, name: str, referer: Optional["PermissionGroup"], required: bool
+    def _get_group_uncached(self, name: Union[str, int], referer: Optional["PermissionGroup"], required: bool
                             ) -> Tuple["PermissionGroup", bool]:
         group_desc = self.config.get(name)
         if group_desc is None:
@@ -166,7 +170,7 @@ class PermissionGroup:
     # 仅在加载过程中有效，加载完成后恢复None。该权限组的引用者，若没有引用者则指向自己。
     referer: Optional["PermissionGroup"] = None
 
-    def __init__(self, namespace: Optional[Namespace], name: str):
+    def __init__(self, namespace: Optional[Namespace], name: Union[str, int]):
         if namespace is not None:
             self.namespace = namespace
             self.name = name
@@ -289,6 +293,3 @@ class NullPermissionGroup(PermissionGroup):
 
     def populate(self, desc, referer):
         raise TypeError
-
-
-reload()
