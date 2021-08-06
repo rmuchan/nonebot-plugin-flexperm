@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Union, Tuple, List, Set, Dict
@@ -63,6 +64,32 @@ def reload():
         if handler.preset:
             namespace = get_namespace(name, True, handler.preset)
             plugin_namespaces.append(namespace)
+
+
+def save_all():
+    for k, v in loaded.items():
+        try:
+            v.save()
+        except Exception as e:
+            _ = e
+            logger.exception('Failed to save namespace {}', k)
+
+
+try:
+    sched = nonebot.require('nonebot_plugin_apscheduler').scheduler
+    sched.add_job(save_all, 'interval', minutes=5, coalesce=True,
+                  id='permman.save', replace_existing=True)
+except (AttributeError, TypeError):
+    @nonebot_driver.on_startup
+    def _():
+        import asyncio
+
+        async def save_timer():
+            while True:
+                await asyncio.sleep(5 * 60)
+                save_all()
+
+        asyncio.create_task(save_timer())
 
 
 class Namespace:
@@ -161,6 +188,42 @@ class Namespace:
         group.populate(desc, referer)
         return group, True
 
+    @contextmanager
+    def modifying(self, name: Union[str, int] = None):
+        if not self.modifiable:
+            raise TypeError('Unmodifiable')
+        yield self.config[name] if name is not None else None
+        self.dirty = True
+
+    def add_group(self, name: Union[str, int]):
+        """
+        创建权限组。
+
+        :param name: 权限组名。
+        :raise KeyError: 权限组已存在。
+        :raise TypeError: 名称空间不可修改。
+        """
+        with self.modifying():
+            if name in self.config:
+                raise KeyError('Duplicate group')
+            self.config[name] = {}
+
+    def remove_group(self, name: Union[str, int], force: bool):
+        """
+        移除权限组。
+
+        :param name: 权限组名。
+        :param force: 是否允许移除非空的权限组。
+        :raise KeyError: 权限组不存在。
+        :raise ValueError: 因权限组非空而没有移除。
+        :raise TypeError: 名称空间不可修改。
+        """
+        with self.modifying():
+            if not force and any(self.config[name].values()):
+                raise ValueError('Not empty')
+            del self.config[name]
+            self.groups.pop(name, None)
+
 
 class PermissionGroup:
     """
@@ -243,6 +306,46 @@ class PermissionGroup:
             target.add(item)
 
         del self.referer
+
+    def add(self, item: str):
+        """
+        添加权限描述。
+
+        :param item: 权限描述。
+        :raise ValueError: 权限组中已有指定描述。
+        :raise TypeError: 权限组不可修改。
+        """
+        with self.namespace.modifying(self.name) as desc:
+            if item.startswith('-'):
+                target = self.denies
+                perm = item[1:]
+            else:
+                target = self.allows
+                perm = item
+            if perm in target:
+                raise ValueError('Duplicate item')
+            target.add(perm)
+            permissions = desc.setdefault('permissions', [])
+            permissions.append(item)
+
+    def remove(self, item: str):
+        """
+        移除权限描述。
+
+        :param item: 权限描述。
+        :raise ValueError: 权限组中没有指定描述。
+        :raise TypeError: 权限组不可修改。
+        """
+        with self.namespace.modifying(self.name) as desc:
+            if item.startswith('-'):
+                target = self.denies
+                perm = item[1:]
+            else:
+                target = self.allows
+                perm = item
+            target.remove(perm)
+            permissions = desc['permissions']
+            permissions.remove(item)
 
 
 class GroupDesc(BaseModel):

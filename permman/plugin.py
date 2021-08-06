@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import Optional, Dict, List, Iterable
+from typing import Optional, Dict, List, Iterable, Union
 
 from nonebot.adapters import Bot, Event
 from nonebot.log import logger
 from nonebot.permission import Permission
 
 from .check import check
+from .core import get, get_namespace
 
 plugins: Dict[str, "PluginHandler"] = {}
 
@@ -92,6 +93,72 @@ class PluginHandler:
         """
         full = self._parse_perm(perm)
         return all(check(bot, event, px) for px in full)
+
+    def add_item(self, namespace: str, group: Union[str, int], item: str):
+        """
+        向权限组添加权限描述。会修饰权限名。
+
+        :param namespace: 权限组名称空间。
+        :param group: 权限组名。
+        :param item: 权限描述。
+        :raise KeyError: 权限组不存在。
+        :raise ValueError: 权限组中已有指定描述。
+        :raise TypeError: 权限组不可修改。
+        """
+        group, found = get(namespace, group)
+        if not found:
+            raise KeyError('No such group')
+        if item.startswith('-'):
+            item = '-' + self._parse_perm([item[1:]])[0]
+        else:
+            item = self._parse_perm([item])[0]
+        group.add(item)
+
+    def remove_item(self, namespace: str, group: Union[str, int], item: str):
+        """
+        从权限组中移除权限描述。会修饰权限名。
+
+        :param namespace: 权限组名称空间。
+        :param group: 权限组名。
+        :param item: 权限描述。
+        :raise KeyError: 权限组不存在。
+        :raise ValueError: 权限组中没有指定描述。
+        :raise TypeError: 权限组不可修改。
+        """
+        group, found = get(namespace, group)
+        if not found:
+            raise KeyError('No such group')
+        if item.startswith('-'):
+            item = '-' + self._parse_perm([item[1:]])[0]
+        else:
+            item = self._parse_perm([item])[0]
+        group.remove(item)
+
+    @classmethod
+    def add_group(cls, namespace: str, group: Union[str, int]):
+        """
+        创建权限组。
+
+        :param namespace: 权限组名称空间。
+        :param group: 权限组名。
+        :raise KeyError: 权限组已存在。
+        :raise TypeError: 名称空间不可修改。
+        """
+        get_namespace(namespace, False).add_group(group)
+
+    @classmethod
+    def remove_group(cls, namespace: str, group: Union[str, int], force: bool):
+        """
+        移除权限组。
+
+        :param namespace: 权限组名称空间。
+        :param group: 权限组名。
+        :param force: 是否允许移除非空的权限组。
+        :raise KeyError: 权限组已存在。
+        :raise ValueError: 因权限组非空而没有移除。
+        :raise ValueError: 名称空间不可修改。
+        """
+        get_namespace(namespace, False).remove_group(group, force)
 
     def _parse_perm(self, perm: Iterable[str]) -> List[str]:
         result = []
