@@ -1,3 +1,4 @@
+import atexit
 from collections import OrderedDict
 from contextlib import contextmanager
 from enum import Enum
@@ -66,7 +67,9 @@ def reload():
             plugin_namespaces.append(namespace)
 
 
+@atexit.register
 def save_all():
+    logger.debug('Saving permissions')
     for k, v in loaded.items():
         try:
             v.save()
@@ -145,7 +148,7 @@ class Namespace:
         group = self.groups.get(name)
         if group is not None:
             if not group.referer:
-                return group, True
+                return group, group.namespace is not None
 
             cycle = [f'{self.name}:{name}']
             it = referer
@@ -207,6 +210,7 @@ class Namespace:
             if name in self.config:
                 raise KeyError('Duplicate group')
             self.config[name] = {}
+            self.groups.pop(name, None)
 
     def remove_group(self, name: Union[str, int], force: bool):
         """
@@ -234,8 +238,8 @@ class PermissionGroup:
     referer: Optional["PermissionGroup"] = None
 
     def __init__(self, namespace: Optional[Namespace], name: Union[str, int]):
+        self.namespace = namespace
         if namespace is not None:
-            self.namespace = namespace
             self.name = name
             self.denies: Set[str] = set()
             self.allows: Set[str] = set()
@@ -325,6 +329,7 @@ class PermissionGroup:
             if perm in target:
                 raise ValueError('Duplicate item')
             target.add(perm)
+            self.cache.clear()
             permissions = desc.setdefault('permissions', [])
             permissions.append(item)
 
@@ -343,7 +348,10 @@ class PermissionGroup:
             else:
                 target = self.allows
                 perm = item
+            if perm not in target:
+                raise ValueError('No such item')
             target.remove(perm)
+            self.cache.clear()
             permissions = desc['permissions']
             permissions.remove(item)
 
@@ -380,7 +388,7 @@ def check_wildcard(item: str, set_: Set[str]) -> bool:
         segments[-1] = '*'
         if '.'.join(segments) in set_:
             return True
-        del segments[-2:]
+        segments.pop()
     return False
 
 

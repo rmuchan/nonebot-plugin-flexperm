@@ -154,9 +154,9 @@ class PluginHandler:
         :param namespace: 权限组名称空间。
         :param group: 权限组名。
         :param force: 是否允许移除非空的权限组。
-        :raise KeyError: 权限组已存在。
+        :raise KeyError: 权限组不存在。
         :raise ValueError: 因权限组非空而没有移除。
-        :raise ValueError: 名称空间不可修改。
+        :raise TypeError: 名称空间不可修改。
         """
         get_namespace(namespace, False).remove_group(group, force)
 
