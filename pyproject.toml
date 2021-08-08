@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "permman"
+name = "nonebot-plugin-flexperm"
 version = "0.1.0"
 description = ""
 authors = ["Muchan <liuzh1773@buaa.edu.cn>"]

@@ -39,7 +39,7 @@ def get_namespace(namespace: str, required: bool, path_override: Path = None) ->
         if path_override:
             ns = Namespace(namespace, required, path_override, False)
         else:
-            ns = Namespace(namespace, required, c.permman_base / f'{namespace}.yml', True)
+            ns = Namespace(namespace, required, c.flexperm_base / f'{namespace}.yml', True)
         loaded[namespace] = ns
     return ns
 
@@ -80,7 +80,7 @@ def save_all():
 try:
     sched = nonebot.require('nonebot_plugin_apscheduler').scheduler
     sched.add_job(save_all, 'interval', minutes=5, coalesce=True,
-                  id='permman.save', replace_existing=True)
+                  id='flexperm.save', replace_existing=True)
 except (AttributeError, TypeError):
     @nonebot_driver.on_startup
     def _():

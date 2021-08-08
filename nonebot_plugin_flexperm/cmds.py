@@ -7,9 +7,9 @@ from nonebot.adapters.cqhttp import MessageEvent, GroupMessageEvent
 from . import core
 from .plugin import register
 
-P = register('permman')
+P = register('flexperm')
 
-cg = CommandGroup('permman')
+cg = CommandGroup('flexperm')
 
 
 def h(x):

@@ -9,11 +9,11 @@ from .core import get, CheckResult, PermissionGroup
 
 
 def check(bot: Bot, event: Event, perm: str) -> bool:
-    if c.permman_debug_check:
+    if c.flexperm_debug_check:
         logger.debug('Checking {}', perm)
     for group in iterate_groups(bot, event):
         r = group.check(perm)
-        if c.permman_debug_check:
+        if c.flexperm_debug_check:
             logger.debug('Got {} from {}', r, group)
         if r is not None:
             return r == CheckResult.ALLOW

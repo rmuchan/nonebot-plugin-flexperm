@@ -12,4 +12,4 @@ group_owner:
 
 superuser:
   permissions:
-    - permman.*
+    - flexperm.*
