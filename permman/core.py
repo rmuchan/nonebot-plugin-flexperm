@@ -1,4 +1,3 @@
-import atexit
 from collections import OrderedDict
 from contextlib import contextmanager
 from enum import Enum
@@ -67,7 +66,7 @@ def reload():
             plugin_namespaces.append(namespace)
 
 
-@atexit.register
+@nonebot_driver.on_shutdown
 def save_all():
     logger.debug('Saving permissions')
     for k, v in loaded.items():
