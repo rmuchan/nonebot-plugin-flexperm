@@ -15,6 +15,7 @@ yaml = YAML()
 nonebot_driver = nonebot.get_driver()
 
 loaded: Dict[str, "Namespace"] = {}
+loaded_by_path: Dict[Path, "Namespace"] = {}
 plugin_namespaces: List["Namespace"] = []
 
 
@@ -36,10 +37,12 @@ def get(namespace: str, group: Union[str, int], referer: "PermissionGroup" = Non
 def get_namespace(namespace: str, required: bool, path_override: Path = None) -> "Namespace":
     ns = loaded.get(namespace)
     if ns is None:
-        if path_override:
-            ns = Namespace(namespace, required, path_override, False)
-        else:
-            ns = Namespace(namespace, required, c.flexperm_base / f'{namespace}.yml', True)
+        path = path_override or c.flexperm_base / f'{namespace}.yml'
+        path = path.resolve()
+        ns = loaded_by_path.get(path)
+        if ns is None:
+            ns = Namespace(namespace, required, path, path_override is None)
+            loaded_by_path[path] = ns
         loaded[namespace] = ns
     return ns
 
@@ -50,6 +53,7 @@ def reload():
     使所有权限组在下一次使用时重新从配置加载。
     """
     loaded.clear()
+    loaded_by_path.clear()
     plugin_namespaces.clear()
 
     # 默认权限组
