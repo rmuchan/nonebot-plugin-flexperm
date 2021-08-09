@@ -31,26 +31,26 @@ def register(plugin_name: str) -> "PluginHandler":
 class PluginHandler:
     def __init__(self, name: str):
         self.name = name
-        self.preset: Optional[Path] = None
-        self.check_root = False
+        self.preset_: Optional[Path] = None
+        self.check_root_ = False
 
-    def preset_(self, preset: Path):
+    def preset(self, preset: Path):
         """
         设置预设权限组，会被加载到插件名对应的名称空间。
 
         :param preset: 包含权限组的文件路径。
         :return: self
         """
-        self.preset = preset
+        self.preset_ = preset
         return self
 
-    def check_root_(self):
+    def check_root(self):
         """
         设置自动检查根权限。
 
         :return: self
         """
-        self.check_root = True
+        self.check_root_ = True
         return self
 
     def __call__(self, *perm: str) -> Permission:
@@ -68,7 +68,7 @@ class PluginHandler:
         :return: 权限检查器，可以直接传递给 nonebot 事件响应器。
         """
         full = self._parse_perm(perm)
-        if self.check_root:
+        if self.check_root_:
             full.insert(0, self.name)
 
         if len(full) == 1:

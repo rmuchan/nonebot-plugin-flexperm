@@ -61,8 +61,8 @@ def reload():
     # 加载插件预设
     from .plugin import plugins
     for name, handler in plugins.items():
-        if handler.preset:
-            namespace = get_namespace(name, True, handler.preset)
+        if handler.preset_:
+            namespace = get_namespace(name, True, handler.preset_)
             plugin_namespaces.append(namespace)
 
 
