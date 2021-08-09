@@ -383,6 +383,7 @@ def check_wildcard(item: str, set_: Set[str]) -> bool:
     if item in set_:
         return True
     segments = item.split('.')
+    segments.append('*')
     while segments:
         segments[-1] = '*'
         if '.'.join(segments) in set_:
