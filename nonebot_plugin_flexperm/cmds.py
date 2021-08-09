@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 from nonebot import CommandGroup
 from nonebot.adapters import Bot, Event
@@ -110,9 +110,15 @@ def get_group_for_event(event: MessageEvent) -> Tuple[str, int]:
         return 'user', event.user_id
 
 
-def parse_group(arg: str) -> Tuple[str, str]:
+def parse_group(arg: str) -> Tuple[str, Union[str, int]]:
     group_split = arg.split(':', maxsplit=1)
     if len(group_split) == 1:
         return 'global', group_split[0]
     else:
-        return tuple(group_split)  # type: ignore
+        namespace, group = group_split
+        if namespace in ['group', 'user']:
+            try:
+                group = int(group)
+            except ValueError:
+                pass
+        return namespace, group
