@@ -94,7 +94,9 @@ P.preset(Path(__file__).parent / "preset.yml")
 
 说明：
 
-预设配置会被加载到与插件同名的名称空间中，允许被其他配置文件引用。与默认的六个权限组同名的会自动加入到相应默认组的继承列表里。例如，上述示例代码的同一目录下`preset.yml`文件内容为：
+预设配置会被加载到与插件同名的名称空间中，允许被其他配置文件引用。与[六个默认权限组](permdesc.md#默认权限组)同名的会被相应组自动继承，无论后者保持默认还是使用自定义设置。
+
+例如，上述示例代码的同一目录下`preset.yml`文件内容为：
 
 ```yaml
 superuser:
@@ -107,7 +109,7 @@ editor:
     - my_plugin.write
 ```
 
-此时，默认组`global:superuser`将自动继承`my_plugin:superuser`，因此超级用户自动具有`my_plugin`下所有子权限（除非被撤销）。权限组`my_plugin:editor`不会直接起作用，但其他权限组可以通过继承它来获得`my_plugin.read`和`my_plugin.write`两项权限。
+此时，权限组`global:superuser`将自动继承`my_plugin:superuser`，因此超级用户自动具有`my_plugin`下所有子权限（除非被撤销）。权限组`my_plugin:editor`不会直接起作用，但其他权限组可以通过继承它来获得`my_plugin.read`和`my_plugin.write`两项权限。
 
 ### check_root
 

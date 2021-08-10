@@ -17,6 +17,7 @@ nonebot_driver = nonebot.get_driver()
 loaded: Dict[str, "Namespace"] = {}
 loaded_by_path: Dict[Path, "Namespace"] = {}
 plugin_namespaces: List["Namespace"] = []
+default_groups: Set[str] = set()
 
 
 def get(namespace: str, group: Union[str, int], referer: "PermissionGroup" = None, required: bool = False):
@@ -55,12 +56,14 @@ def reload():
     loaded.clear()
     loaded_by_path.clear()
     plugin_namespaces.clear()
+    default_groups.clear()
 
     # 默认权限组
     global_ = get_namespace('global', False)
     defaults = Namespace('global', True, Path(__file__).parent / 'defaults.yml', False)
     for k, v in defaults.config.items():
         global_.config.setdefault(k, v)
+    default_groups.update(defaults.config)
 
     # 加载插件预设
     from .plugin import plugins
@@ -185,7 +188,7 @@ class Namespace:
             return NullPermissionGroup(), False
 
         # 注入插件预设
-        if self.name == 'global':
+        if self.name == 'global' and name in default_groups:
             for pn in plugin_namespaces:
                 if name in pn.config:
                     desc.inherits.append(f'{pn.name}:{name}')
