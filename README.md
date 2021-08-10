@@ -1,6 +1,6 @@
 # nonebot-plugin-flexperm
 
-一个精细化的 NoneBot 权限管理插件。
+精细化的 NoneBot 权限管理插件。
 
 提供对用户精确到人或群、对插件精确到指令或更细粒度的权限管理功能。
 

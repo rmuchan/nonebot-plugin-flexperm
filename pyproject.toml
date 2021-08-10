@@ -1,8 +1,12 @@
 [tool.poetry]
 name = "nonebot-plugin-flexperm"
 version = "0.1.0"
-description = ""
+description = "精细化的 NoneBot 权限管理插件"
+license = "MIT"
 authors = ["Muchan <liuzh1773@buaa.edu.cn>"]
+readme = "README.md"
+repository = "https://github.com/rmuchan/nonebot-plugin-flexperm"
+keywords = ["nonebot"]
 
 [tool.poetry.dependencies]
 python = "^3.7.3"
