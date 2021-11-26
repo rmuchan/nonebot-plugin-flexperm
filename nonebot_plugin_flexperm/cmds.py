@@ -16,11 +16,20 @@ def h(x):
     return x.handle()
 
 
-def plaintext(_b, e, _s):
-    return all(seg.is_text() for seg in e.get_message())
+def ensure_command(_b, e, s):
+    msg = e.get_message()
+    raw_cmd = s["_prefix"]["raw_command"]
+    if not msg or not raw_cmd or not all(seg.is_text() for seg in msg):
+        return False
+
+    first_seg = str(msg[0]).lstrip()
+    if not first_seg.startswith(raw_cmd):
+        return False
+    return (len(msg) == 1 and len(first_seg) == len(raw_cmd)  # 无参数
+            or first_seg[len(raw_cmd)].isspace())  # 命令名后有空格
 
 
-@h(cg.command('reload', rule=plaintext, permission=P('reload')))
+@h(cg.command('reload', rule=ensure_command, permission=P('reload')))
 async def _(bot: Bot, event: MessageEvent):
     force = str(event.message).strip() == 'force'
     reloaded = core.reload(force)
@@ -30,7 +39,7 @@ async def _(bot: Bot, event: MessageEvent):
         await bot.send(event, '有未保存的修改，如放弃修改请添加force参数')
 
 
-@h(cg.command('save', permission=P('reload')))
+@h(cg.command('save', rule=ensure_command, permission=P('reload')))
 async def _(bot: Bot, event: MessageEvent):
     success = core.save_all()
     if success:
@@ -39,8 +48,8 @@ async def _(bot: Bot, event: MessageEvent):
         await bot.send(event, '部分配置保存失败，请检查控制台输出')
 
 
-@h(cg.command('add', rule=plaintext, permission=P('edit.perm'), state={'add': True}))
-@h(cg.command('remove', rule=plaintext, permission=P('edit.perm'), state={'add': False}))
+@h(cg.command('add', rule=ensure_command, permission=P('edit.perm'), state={'add': True}))
+@h(cg.command('remove', rule=ensure_command, permission=P('edit.perm'), state={'add': False}))
 async def _(bot: Bot, event: MessageEvent, state: dict):
     args = str(event.message).split()
 
@@ -78,9 +87,9 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
         await bot.send(event, '已修改权限组')
 
 
-@h(cg.command('addgrp', rule=plaintext, permission=P('edit.group'), state={'add': True}))
-@h(cg.command('rmgrp', rule=plaintext, permission=P('edit.group'), state={'add': False, 'force': False}))
-@h(cg.command('rmgrpf', rule=plaintext, permission=P('edit.group.force'), state={'add': False, 'force': True}))
+@h(cg.command('addgrp', rule=ensure_command, permission=P('edit.group'), state={'add': True}))
+@h(cg.command('rmgrp', rule=ensure_command, permission=P('edit.group'), state={'add': False, 'force': False}))
+@h(cg.command('rmgrpf', rule=ensure_command, permission=P('edit.group.force'), state={'add': False, 'force': True}))
 async def _(bot: Bot, event: MessageEvent, state: dict):
     arg = str(event.message).strip()
 
