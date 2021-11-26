@@ -32,8 +32,11 @@ async def _(bot: Bot, event: MessageEvent):
 
 @h(cg.command('save', permission=P('reload')))
 async def _(bot: Bot, event: MessageEvent):
-    core.save_all()
-    await bot.send(event, '已保存权限配置')
+    success = core.save_all()
+    if success:
+        await bot.send(event, '已保存权限配置')
+    else:
+        await bot.send(event, '部分配置保存失败，请检查控制台输出')
 
 
 @h(cg.command('add', rule=plaintext, permission=P('edit.perm'), state={'add': True}))

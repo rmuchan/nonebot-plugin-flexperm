@@ -78,18 +78,31 @@ def reload(force: bool = False) -> bool:
             namespace = get_namespace(name, True, handler.preset_)
             plugin_namespaces.append(namespace)
 
+    # 生成全局组默认配置
+    if not global_.path.is_file():
+        global_.dirty = True
+        global_.save()
+
     return True
 
 
 @nonebot_driver.on_shutdown
-def save_all():
+def save_all() -> bool:
+    """
+    保存所有权限配置。
+
+    :return: 是否全部保存成功。
+    """
     logger.debug('Saving permissions')
+    failed = False
     for k, v in loaded.items():
         try:
             v.save()
         except Exception as e:
             _ = e
+            failed = True
             logger.exception('Failed to save namespace {}', k)
+    return not failed
 
 
 try:
@@ -144,6 +157,7 @@ class Namespace:
         把本名称空间保存到硬盘上。若没有修改过则不做任何事。
         """
         if self.modifiable and self.dirty:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
             yaml.dump(self.config, self.path)
             self.dirty = False
 
