@@ -49,10 +49,16 @@ def get_namespace(namespace: str, required: bool, path_override: Path = None) ->
 
 
 @nonebot_driver.on_startup
-def reload():
+def reload(force: bool = False) -> bool:
     """
     使所有权限组在下一次使用时重新从配置加载。
+
+    :param force: 强制重新加载，忽略未保存的修改。
+    :return: 因有未保存的修改而没有重新加载时返回 False ，否则返回 True 。
     """
+    if not force and any(x.dirty for x in loaded.values()):
+        return False
+
     loaded.clear()
     loaded_by_path.clear()
     plugin_namespaces.clear()
@@ -71,6 +77,8 @@ def reload():
         if handler.preset_:
             namespace = get_namespace(name, True, handler.preset_)
             plugin_namespaces.append(namespace)
+
+    return True
 
 
 @nonebot_driver.on_shutdown

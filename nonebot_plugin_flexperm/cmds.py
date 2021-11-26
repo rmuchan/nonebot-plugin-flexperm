@@ -1,7 +1,7 @@
 from typing import Tuple, Union
 
 from nonebot import CommandGroup
-from nonebot.adapters import Bot, Event
+from nonebot.adapters import Bot
 from nonebot.adapters.cqhttp import MessageEvent, GroupMessageEvent
 
 from . import core
@@ -20,10 +20,14 @@ def plaintext(_b, e, _s):
     return all(seg.is_text() for seg in e.get_message())
 
 
-@h(cg.command('reload', permission=P('reload')))
-async def _(bot: Bot, event: Event):
-    core.reload()
-    await bot.send(event, '重新加载权限配置')
+@h(cg.command('reload', rule=plaintext, permission=P('reload')))
+async def _(bot: Bot, event: MessageEvent):
+    force = str(event.message).strip() == 'force'
+    reloaded = core.reload(force)
+    if reloaded:
+        await bot.send(event, '重新加载权限配置')
+    else:
+        await bot.send(event, '有未保存的修改，如放弃修改请添加force参数')
 
 
 @h(cg.command('save', permission=P('reload')))
@@ -75,7 +79,7 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
 @h(cg.command('rmgrp', rule=plaintext, permission=P('edit.group'), state={'add': False, 'force': False}))
 @h(cg.command('rmgrpf', rule=plaintext, permission=P('edit.group.force'), state={'add': False, 'force': True}))
 async def _(bot: Bot, event: MessageEvent, state: dict):
-    arg = str(event.message)
+    arg = str(event.message).strip()
 
     # 无参数，编辑当前会话权限组
     if not arg:
