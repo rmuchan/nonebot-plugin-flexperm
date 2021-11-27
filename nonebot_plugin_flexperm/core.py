@@ -7,7 +7,7 @@ from typing import Optional, Union, Tuple, List, Set, Dict
 import nonebot
 from nonebot.log import logger
 from pydantic import BaseModel, parse_obj_as
-from ruamel.yaml import YAML, YAMLError
+from ruamel.yaml import YAML, YAMLError, CommentedMap, CommentedSeq
 
 from .config import c
 
@@ -138,7 +138,7 @@ class Namespace:
             self.config = {}
             self.modifiable = False
         elif not required and not path.is_file():
-            self.config = {}
+            self.config = CommentedMap()
         else:
             try:
                 doc = yaml.load(path)
@@ -146,11 +146,11 @@ class Namespace:
                 logger.exception('Failed to load namespace {} ({})', namespace, path)
                 doc = {}
 
-            if not isinstance(doc, dict):
+            if not isinstance(doc, CommentedMap):
                 logger.error('Expect a dict: {} ({})', namespace, path)
                 doc = {}
 
-            self.config: Dict[Union[str, int], dict] = doc
+            self.config: CommentedMap[Union[str, int], dict] = doc
 
     def save(self):
         """
@@ -226,18 +226,21 @@ class Namespace:
         yield self.config[name] if name is not None else None
         self.dirty = True
 
-    def add_group(self, name: Union[str, int]):
+    def add_group(self, name: Union[str, int], comment: str = None):
         """
         创建权限组。
 
         :param name: 权限组名。
+        :param comment: 注释。
         :raise KeyError: 权限组已存在。
         :raise TypeError: 名称空间不可修改。
         """
         with self.modifying():
             if name in self.config:
                 raise KeyError('Duplicate group')
-            self.config[name] = {}
+            self.config[name] = CommentedMap()
+            if comment is not None:
+                self.config.yaml_add_eol_comment(comment, name)
             self.groups.pop(name, None)
 
     def remove_group(self, name: Union[str, int], force: bool):
@@ -339,11 +342,12 @@ class PermissionGroup:
 
         del self.referer
 
-    def add(self, item: str):
+    def add(self, item: str, comment: str = None):
         """
         添加权限描述。
 
         :param item: 权限描述。
+        :param comment: 注释。
         :raise ValueError: 权限组中已有指定描述。
         :raise TypeError: 权限组不可修改。
         """
@@ -358,8 +362,10 @@ class PermissionGroup:
                 raise ValueError('Duplicate item')
             target.add(perm)
             self.cache.clear()
-            permissions = desc.setdefault('permissions', [])
+            permissions: CommentedSeq = desc.setdefault('permissions', CommentedSeq())
             permissions.append(item)
+            if comment is not None:
+                permissions.yaml_add_eol_comment(comment, len(permissions) - 1)  # yaml_add_eol_comment 不支持负数下标
 
     def remove(self, item: str):
         """

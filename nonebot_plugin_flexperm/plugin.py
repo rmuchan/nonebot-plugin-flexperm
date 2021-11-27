@@ -94,13 +94,14 @@ class PluginHandler:
         full = self._parse_perm(perm)
         return all(check(bot, event, px) for px in full)
 
-    def add_item(self, namespace: str, group: Union[str, int], item: str):
+    def add_item(self, namespace: str, group: Union[str, int], item: str, comment: str = None):
         """
         向权限组添加权限描述。会修饰权限名。
 
         :param namespace: 权限组名称空间。
         :param group: 权限组名。
         :param item: 权限描述。
+        :param comment: 注释。
         :raise KeyError: 权限组不存在。
         :raise ValueError: 权限组中已有指定描述。
         :raise TypeError: 权限组不可修改。
@@ -112,7 +113,7 @@ class PluginHandler:
             item = '-' + self._parse_perm([item[1:]])[0]
         else:
             item = self._parse_perm([item])[0]
-        group.add(item)
+        group.add(item, comment)
 
     def remove_item(self, namespace: str, group: Union[str, int], item: str):
         """
@@ -135,16 +136,17 @@ class PluginHandler:
         group.remove(item)
 
     @classmethod
-    def add_group(cls, namespace: str, group: Union[str, int]):
+    def add_group(cls, namespace: str, group: Union[str, int], comment: str = None):
         """
         创建权限组。
 
         :param namespace: 权限组名称空间。
         :param group: 权限组名。
+        :param comment: 注释。
         :raise KeyError: 权限组已存在。
         :raise TypeError: 名称空间不可修改。
         """
-        get_namespace(namespace, False).add_group(group)
+        get_namespace(namespace, False).add_group(group, comment)
 
     @classmethod
     def remove_group(cls, namespace: str, group: Union[str, int], force: bool):

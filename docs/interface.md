@@ -140,6 +140,7 @@ P.check_root()
 - `namespace: str`，权限组名称空间。
 - `group: Union[str, int]`，权限组名。
 - `item: str`，权限描述。
+- `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
 
 可能抛出的异常及原因：
 
@@ -171,6 +172,7 @@ P.check_root()
 
 - `namespace: str`，权限组名称空间。
 - `group: Union[str, int]`，权限组名。
+- `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
 
 可能抛出的异常及原因：
 
