@@ -16,7 +16,7 @@ def h(x):
     return x.handle()
 
 
-def ensure_command(_b, e, s):
+async def ensure_command(_b, e, s):
     msg = e.get_message()
     raw_cmd = s["_prefix"]["raw_command"]
     if not msg or not raw_cmd or not all(seg.is_text() for seg in msg):
