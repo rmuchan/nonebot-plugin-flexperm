@@ -94,7 +94,8 @@ class PluginHandler:
         full = self._parse_perm(perm)
         return all(check(bot, event, px) for px in full)
 
-    def add_item(self, namespace: str, group: Union[str, int], item: str, comment: str = None):
+    def add_item(self, namespace: str, group: Union[str, int], item: str, comment: str = None,
+                 create_group: bool = True) -> bool:
         """
         向权限组添加权限描述。会修饰权限名。
 
@@ -102,38 +103,53 @@ class PluginHandler:
         :param group: 权限组名。
         :param item: 权限描述。
         :param comment: 注释。
-        :raise KeyError: 权限组不存在。
-        :raise ValueError: 权限组中已有指定描述。
+        :param create_group: 如果权限组不存在，是否自动创建。
+        :return: 是否确实添加了，如果权限组中已有指定描述则返回 False 。
+        :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
-        group, found = get(namespace, group)
+        group_, found = get(namespace, group)
         if not found:
-            raise KeyError('No such group')
+            if not create_group:
+                raise KeyError('No such group')
+            self.add_group(namespace, group)
+            group_, _ = get(namespace, group)
         if item.startswith('-'):
             item = '-' + self._parse_perm([item[1:]])[0]
         else:
             item = self._parse_perm([item])[0]
-        group.add(item, comment)
+        try:
+            group_.add(item, comment)
+            return True
+        except ValueError:
+            return False
 
-    def remove_item(self, namespace: str, group: Union[str, int], item: str):
+    def remove_item(self, namespace: str, group: Union[str, int], item: str, allow_missing: bool = True) -> bool:
         """
         从权限组中移除权限描述。会修饰权限名。
 
         :param namespace: 权限组名称空间。
         :param group: 权限组名。
         :param item: 权限描述。
-        :raise KeyError: 权限组不存在。
-        :raise ValueError: 权限组中没有指定描述。
+        :param allow_missing: 如果权限组不存在，是否静默忽略。
+        :return: 是否确实移除了，如果权限组中没有指定描述则返回 False 。
+        :raise KeyError: 权限组不存在，并且指定为不静默忽略。
         :raise TypeError: 权限组不可修改。
         """
-        group, found = get(namespace, group)
+        group_, found = get(namespace, group)
         if not found:
-            raise KeyError('No such group')
+            if not allow_missing:
+                raise KeyError('No such group')
+            return False
         if item.startswith('-'):
             item = '-' + self._parse_perm([item[1:]])[0]
         else:
             item = self._parse_perm([item])[0]
-        group.remove(item)
+        try:
+            group_.remove(item)
+            return True
+        except ValueError:
+            return False
 
     @classmethod
     def add_group(cls, namespace: str, group: Union[str, int], comment: str = None):

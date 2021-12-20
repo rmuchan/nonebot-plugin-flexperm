@@ -141,11 +141,15 @@ P.check_root()
 - `group: Union[str, int]`，权限组名。
 - `item: str`，权限描述。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
+- `create_group: bool = True`，如果权限组不存在，是否自动创建。
+
+返回：
+
+`bool`，是否确实添加了，如果权限组中已有指定描述则返回`False`。
 
 可能抛出的异常及原因：
 
-- `KeyError`: 权限组不存在。
-- `ValueError`: 权限组中已有指定描述。
+- `KeyError`: 权限组不存在，并且指定为不自动创建。
 - `TypeError`: 权限组不可修改。
 
 ### remove_item
@@ -157,11 +161,15 @@ P.check_root()
 - `namespace: str`，权限组名称空间。
 - `group: Union[str, int]`，权限组名。
 - `item: str`，权限描述。
+- `allow_missing: bool = True`，如果权限组不存在，是否静默忽略。
+
+返回：
+
+`bool`，是否确实移除了，如果权限组中没有指定描述则返回`False`。
 
 可能抛出的异常及原因：
 
-- `KeyError`: 权限组不存在。
-- `ValueError`: 权限组中没有指定描述。
+- `KeyError`: 权限组不存在，并且指定为不静默忽略。
 - `TypeError`: 权限组不可修改。
 
 ### add_group

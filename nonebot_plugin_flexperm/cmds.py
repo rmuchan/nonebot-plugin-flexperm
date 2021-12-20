@@ -74,17 +74,16 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
 
     try:
         if state['add']:
-            P.add_item(namespace, group, item)
+            result = P.add_item(namespace, group, item)
         else:
-            P.remove_item(namespace, group, item)
+            result = P.remove_item(namespace, group, item)
     except TypeError:
         await bot.send(event, '权限组不可修改')
-    except KeyError:
-        await bot.send(event, '权限组不存在')
-    except ValueError:
-        await bot.send(event, '权限组中{}指定描述'.format('已有' if state['add'] else '没有'))
     else:
-        await bot.send(event, '已修改权限组')
+        if result:
+            await bot.send(event, '已修改权限组')
+        else:
+            await bot.send(event, '权限组中{}指定描述'.format('已有' if state['add'] else '没有'))
 
 
 @h(cg.command('addgrp', rule=ensure_command, permission=P('edit.group'), state={'add': True}))
