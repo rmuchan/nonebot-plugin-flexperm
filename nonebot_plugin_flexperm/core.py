@@ -82,6 +82,11 @@ def reload(force: bool = False) -> bool:
     if not global_.path.is_file():
         global_.dirty = True
         global_.save()
+    for name in ['group', 'user']:
+        namespace = get_namespace(name, False)
+        if not namespace.path.is_file():
+            namespace.add_group(42, 'Example')
+            namespace.save()
 
     return True
 
@@ -238,7 +243,7 @@ class Namespace:
         with self.modifying():
             if name in self.config:
                 raise KeyError('Duplicate group')
-            self.config[name] = CommentedMap()
+            self.config[name] = CommentedMap(permissions=CommentedSeq())
             if comment is not None:
                 self.config.yaml_add_eol_comment(comment, name)
             self.groups.pop(name, None)
@@ -438,4 +443,10 @@ class NullPermissionGroup(PermissionGroup):
         pass
 
     def populate(self, desc, referer):
+        raise TypeError
+
+    def add(self, item: str, comment: str = None):
+        raise TypeError
+
+    def remove(self, item: str):
         raise TypeError
