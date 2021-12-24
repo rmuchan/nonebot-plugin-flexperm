@@ -43,6 +43,8 @@ P = require("nonebot_plugin_flexperm").register("my_plugin")
 参数：
 
 - `*perm: str`，需要检查的权限，若传入多个则须全部满足。
+- 以下参数只能以关键字参数形式传入。
+- `check_root: bool = ...`，如果传入布尔值，则替代之前`self.check_root()`的设定。
 
 返回类型：`Permission`
 
@@ -137,9 +139,9 @@ P.check_root()
 
 参数：
 
-- `namespace: str`，权限组名称空间。
-- `group: Union[str, int]`，权限组名。
+- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
 - `item: str`，权限描述。
+- 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
 - `create_group: bool = True`，如果权限组不存在，是否自动创建。
 
@@ -158,9 +160,9 @@ P.check_root()
 
 参数：
 
-- `namespace: str`，权限组名称空间。
-- `group: Union[str, int]`，权限组名。
+- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
 - `item: str`，权限描述。
+- 以下参数只能以关键字参数形式传入。
 - `allow_missing: bool = True`，如果权限组不存在，是否静默忽略。
 
 返回：
@@ -178,8 +180,8 @@ P.check_root()
 
 参数：
 
-- `namespace: str`，权限组名称空间。
-- `group: Union[str, int]`，权限组名。
+- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
 
 可能抛出的异常及原因：
@@ -193,12 +195,27 @@ P.check_root()
 
 参数：
 
-- `namespace: str`，权限组名称空间。
-- `group: Union[str, int]`，权限组名。
-- `force: bool`，是否允许移除非空的权限组。
+- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- 以下参数只能以关键字参数形式传入。
+- `force: bool = False`，是否允许移除非空的权限组。
 
 可能抛出的异常及原因：
 
 - `KeyError`: 权限组不存在。
 - `ValueError`: 因权限组非空而没有移除。
 - `TypeError`: 名称空间不可修改。
+
+# 词条解释
+
+## 权限组指示符
+
+权限组指示符可以是一个字符串或一个 NoneBot `Event` 对象，在本插件的接口中的出现形式通常是名为`designator`的参数。指示符会按下列规则解释为名称空间和权限组名：
+
+- 如果指示符是字符串：
+  - 如果指示符包含冒号，则以第一个冒号之前的内容为名称空间，之后的内容为权限组名。
+    - 如果名称空间是`group`或`user`，并且权限组名是一个整数，则自动调整为整型，否则保持为字符串。
+  - 如果指示符不包含冒号，则代表`global`名称空间，整个指示符为权限组名。
+- 如果指示符是`Event`对象：
+  - 对于群聊消息事件，代表`group`名称空间，群号为权限组名。
+  - 对于私聊消息事件，代表`user`名称空间，用户ID（QQ号）为权限组名。
+  - 其他事件类型暂不支持。

@@ -1,8 +1,6 @@
-from typing import Tuple, Union
-
 from nonebot import CommandGroup
 from nonebot.adapters import Bot
-from nonebot.adapters.cqhttp import MessageEvent, GroupMessageEvent
+from nonebot.adapters.cqhttp import MessageEvent
 
 from . import core
 from .plugin import register
@@ -56,11 +54,10 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
     # 一个参数，编辑当前会话的权限
     if len(args) == 1:
         item = args[0]
-        namespace, group = get_group_for_event(event)
+        designator = event
     # 两个参数，编辑指定权限组权限
     elif len(args) == 2:
-        item = args[1]
-        namespace, group = parse_group(args[0])
+        designator, item = args
     # 参数数量错误
     else:
         usage = '用法：{} [[名称空间:]权限组名] 权限描述'
@@ -74,9 +71,9 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
 
     try:
         if state['add']:
-            result = P.add_item(namespace, group, item)
+            result = P.add_item(designator, item)
         else:
-            result = P.remove_item(namespace, group, item)
+            result = P.remove_item(designator, item)
     except TypeError:
         await bot.send(event, '权限组不可修改')
     else:
@@ -94,10 +91,10 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
 
     # 无参数，编辑当前会话权限组
     if not arg:
-        namespace, group = get_group_for_event(event)
+        designator = event
     # 一个参数，编辑指定权限组
     elif not any(x.isspace() for x in arg):
-        namespace, group = parse_group(arg)
+        designator = arg
     # 参数数量错误
     else:
         usage = '用法：{} [[名称空间:]权限组名]'
@@ -105,9 +102,9 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
 
     try:
         if state['add']:
-            P.add_group(namespace, group)
+            P.add_group(designator)
         else:
-            P.remove_group(namespace, group, state['force'])
+            P.remove_group(designator, force=state['force'])
     except TypeError:
         await bot.send(event, '名称空间不可修改')
     except KeyError:
@@ -116,24 +113,3 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
         await bot.send(event, '权限组非空')
     else:
         await bot.send(event, '已{}权限组'.format('创建' if state['add'] else '删除'))
-
-
-def get_group_for_event(event: MessageEvent) -> Tuple[str, int]:
-    if isinstance(event, GroupMessageEvent):
-        return 'group', event.group_id
-    else:
-        return 'user', event.user_id
-
-
-def parse_group(arg: str) -> Tuple[str, Union[str, int]]:
-    group_split = arg.split(':', maxsplit=1)
-    if len(group_split) == 1:
-        return 'global', group_split[0]
-    else:
-        namespace, group = group_split
-        if namespace in ['group', 'user']:
-            try:
-                group = int(group)
-            except ValueError:
-                pass
-        return namespace, group

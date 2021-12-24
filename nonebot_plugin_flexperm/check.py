@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Tuple, Optional
 
 from nonebot import logger
 from nonebot.adapters import Bot, Event
@@ -19,6 +19,13 @@ def check(bot: Bot, event: Event, perm: str) -> bool:
             return r == CheckResult.ALLOW
 
     return False
+
+
+def get_permission_group_by_event(event: Event) -> Optional[Tuple[str, int]]:
+    if isinstance(event, GroupMessageEvent):
+        return 'group', event.group_id
+    if isinstance(event, PrivateMessageEvent):
+        return 'user', event.user_id
 
 
 def iterate_groups(bot: Bot, event: Event) -> Iterable[PermissionGroup]:

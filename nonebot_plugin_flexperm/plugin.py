@@ -1,11 +1,12 @@
+import contextlib
 from pathlib import Path
-from typing import Optional, Dict, List, Iterable, Union
+from typing import Optional, Dict, List, Iterable, Union, Tuple
 
 from nonebot.adapters import Bot, Event
 from nonebot.log import logger
 from nonebot.permission import Permission
 
-from .check import check
+from .check import check, get_permission_group_by_event
 from .core import get, get_namespace
 
 plugins: Dict[str, "PluginHandler"] = {}
@@ -29,6 +30,8 @@ def register(plugin_name: str) -> "PluginHandler":
 
 
 class PluginHandler:
+    _sentinel = object()
+
     def __init__(self, name: str):
         self.name = name
         self.preset_: Optional[Path] = None
@@ -53,7 +56,7 @@ class PluginHandler:
         self.check_root_ = True
         return self
 
-    def __call__(self, *perm: str) -> Permission:
+    def __call__(self, *perm: str, check_root: bool = _sentinel) -> Permission:
         """
         创建权限检查器。若设置了 check_root ，则除了传入的权限外，还会检查本插件的根权限。
 
@@ -65,10 +68,13 @@ class PluginHandler:
         - 否则，在开头添加 插件名+"." 。
 
         :param perm: 权限名，若传入多个权限则须同时满足。
+        :param check_root: 如果传入布尔值，则替代之前 self.check_root() 的设定。
         :return: 权限检查器，可以直接传递给 nonebot 事件响应器。
         """
         full = self._parse_perm(perm)
-        if self.check_root_:
+        if check_root is self._sentinel:
+            check_root = self.check_root_
+        if check_root:
             full.insert(0, self.name)
 
         if len(full) == 1:
@@ -94,13 +100,12 @@ class PluginHandler:
         full = self._parse_perm(perm)
         return all(check(bot, event, px) for px in full)
 
-    def add_item(self, namespace: str, group: Union[str, int], item: str, comment: str = None,
-                 create_group: bool = True) -> bool:
+    def add_item(self, designator: Union[Event, str], item: str, *,
+                 comment: str = None, create_group: bool = True) -> bool:
         """
         向权限组添加权限描述。会修饰权限名。
 
-        :param namespace: 权限组名称空间。
-        :param group: 权限组名。
+        :param designator: 权限组指示符。
         :param item: 权限描述。
         :param comment: 注释。
         :param create_group: 如果权限组不存在，是否自动创建。
@@ -108,11 +113,12 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
+        namespace, group = self._parse_designator(designator)
         group_, found = get(namespace, group)
         if not found:
             if not create_group:
                 raise KeyError('No such group')
-            self.add_group(namespace, group)
+            self.add_group(designator)
             group_, _ = get(namespace, group)
         if item.startswith('-'):
             item = '-' + self._parse_perm([item[1:]])[0]
@@ -124,18 +130,18 @@ class PluginHandler:
         except ValueError:
             return False
 
-    def remove_item(self, namespace: str, group: Union[str, int], item: str, allow_missing: bool = True) -> bool:
+    def remove_item(self, designator: Union[Event, str], item: str, *, allow_missing: bool = True) -> bool:
         """
         从权限组中移除权限描述。会修饰权限名。
 
-        :param namespace: 权限组名称空间。
-        :param group: 权限组名。
+        :param designator: 权限组指示符。
         :param item: 权限描述。
         :param allow_missing: 如果权限组不存在，是否静默忽略。
         :return: 是否确实移除了，如果权限组中没有指定描述则返回 False 。
         :raise KeyError: 权限组不存在，并且指定为不静默忽略。
         :raise TypeError: 权限组不可修改。
         """
+        namespace, group = self._parse_designator(designator)
         group_, found = get(namespace, group)
         if not found:
             if not allow_missing:
@@ -152,31 +158,49 @@ class PluginHandler:
             return False
 
     @classmethod
-    def add_group(cls, namespace: str, group: Union[str, int], comment: str = None):
+    def add_group(cls, designator: Union[Event, str], *, comment: str = None):
         """
         创建权限组。
 
-        :param namespace: 权限组名称空间。
-        :param group: 权限组名。
+        :param designator: 权限组指示符。
         :param comment: 注释。
         :raise KeyError: 权限组已存在。
         :raise TypeError: 名称空间不可修改。
         """
+        namespace, group = cls._parse_designator(designator)
         get_namespace(namespace, False).add_group(group, comment)
 
     @classmethod
-    def remove_group(cls, namespace: str, group: Union[str, int], force: bool):
+    def remove_group(cls, designator: Union[Event, str], *, force: bool = False):
         """
         移除权限组。
 
-        :param namespace: 权限组名称空间。
-        :param group: 权限组名。
+        :param designator: 权限组指示符。
         :param force: 是否允许移除非空的权限组。
         :raise KeyError: 权限组不存在。
         :raise ValueError: 因权限组非空而没有移除。
         :raise TypeError: 名称空间不可修改。
         """
+        namespace, group = cls._parse_designator(designator)
         get_namespace(namespace, False).remove_group(group, force)
+
+    @classmethod
+    def _parse_designator(cls, designator: Union[Event, str]) -> Tuple[str, Union[str, int]]:
+        if isinstance(designator, Event):
+            result = get_permission_group_by_event(designator)
+            if result is not None:
+                return result
+            raise ValueError('Unrecognized event type: ' + designator.get_event_name())
+        if isinstance(designator, str):
+            designator_split = designator.split(':', maxsplit=1)
+            if len(designator_split) == 1:
+                return 'global', designator_split[0]
+            namespace, group = designator_split
+            if namespace in ['group', 'user']:
+                with contextlib.suppress(ValueError):
+                    group = int(group)
+            return namespace, group
+        raise ValueError(f'Invalid designator: {type(designator)}')
 
     def _parse_perm(self, perm: Iterable[str]) -> List[str]:
         result = []
