@@ -22,9 +22,9 @@
 
 添加权限描述。
 
-若未指定需要修改的权限组，则为当前会话所在群（私聊为用户）的权限组。若指定了权限组名但未指定名称空间，则为`global`名称空间。下同。
+如果没有提供权限组指示符，则默认使用当前会话所代表的权限组。详见[权限组指示符](interface.md#权限组指示符)。
 
-用法：`/flexperm.add [[名称空间:]权限组名] 权限描述`
+用法：`/flexperm.add [权限组指示符] 权限描述`
 
 需要权限：`flexperm.edit.perm`
 
@@ -32,7 +32,7 @@
 
 移除权限描述。
 
-用法：`/flexperm.remove [[名称空间:]权限组名] 权限描述`
+用法：`/flexperm.remove [权限组指示符] 权限描述`
 
 需要权限：`flexperm.edit.perm`
 
@@ -40,7 +40,7 @@
 
 添加权限组。
 
-用法：`/flexperm.addgrp [[名称空间:]权限组名]`
+用法：`/flexperm.addgrp [权限组指示符]`
 
 需要权限：`flexperm.edit.group`
 
@@ -48,7 +48,7 @@
 
 移除权限组，权限组必须为空。
 
-用法：`/flexperm.rmgrp [[名称空间:]权限组名]`
+用法：`/flexperm.rmgrp [权限组指示符]`
 
 需要权限：`flexperm.edit.group`
 
@@ -56,6 +56,6 @@
 
 移除权限组，权限组可以非空。
 
-用法：`/flexperm.rmgrpf [[名称空间:]权限组名]`
+用法：`/flexperm.rmgrpf [权限组指示符]`
 
 需要权限：`flexperm.edit.group.force`

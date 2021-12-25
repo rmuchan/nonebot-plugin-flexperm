@@ -7,7 +7,7 @@ from nonebot.log import logger
 from nonebot.permission import Permission
 
 from .check import check, get_permission_group_by_event
-from .core import get, get_namespace
+from .core import get, get_namespace, PermissionGroup
 
 plugins: Dict[str, "PluginHandler"] = {}
 
@@ -100,6 +100,84 @@ class PluginHandler:
         full = self._parse_perm(perm)
         return all(check(bot, event, px) for px in full)
 
+    def add_permission(self, designator: Union[Event, str], perm: str, *,
+                       comment: str = None, create_group: bool = True) -> bool:
+        """
+        向权限组添加一项权限。会修饰权限名。
+
+        实质是移除 perm 的"撤销"权限描述，并添加"授予"权限描述。
+
+        :param designator: 权限组指示符。
+        :param perm: 权限名。
+        :param comment: 注释。
+        :param create_group: 如果权限组不存在，是否自动创建。
+        :return: 是否确实更改了，如果权限组中已有指定"授予"权限描述则返回 False 。
+        :raise KeyError: 权限组不存在，并且指定为不自动创建。
+        :raise TypeError: 权限组不可修改。
+        """
+        group_ = self._get_or_create_group(designator, create_group, True)
+        perm = self._parse_perm([perm])[0]
+        with contextlib.suppress(ValueError):
+            group_.remove('-' + perm)
+        try:
+            group_.add(perm, comment)
+            return True
+        except ValueError:
+            return False
+
+    def remove_permission(self, designator: Union[Event, str], perm: str, *,
+                          comment: str = None, create_group: bool = True) -> bool:
+        """
+        从权限组去除一项权限。会修饰权限名。
+
+        实质是移除 perm 的"授予"权限描述，并添加"撤销"权限描述。
+
+        :param designator: 权限组指示符。
+        :param perm: 权限名。
+        :param comment: 注释。
+        :param create_group: 如果权限组不存在，是否自动创建。
+        :return: 是否确实更改了，如果权限组中已有指定"撤销"权限描述则返回 False 。
+        :raise KeyError: 权限组不存在，并且指定为不自动创建。
+        :raise TypeError: 权限组不可修改。
+        """
+        group_ = self._get_or_create_group(designator, create_group, True)
+        perm = self._parse_perm([perm])[0]
+        with contextlib.suppress(ValueError):
+            group_.remove(perm)
+        try:
+            group_.add('-' + perm, comment)
+            return True
+        except ValueError:
+            return False
+
+    def reset_permission(self, designator: Union[Event, str], perm: str, *, allow_missing: bool = True) -> bool:
+        """
+        把权限组中关于一项权限的描述恢复默认。会修饰权限名。
+
+        实质是移除 perm 的"授予"和"撤销"权限描述，使得检查时会检索到更低层级权限组的设置。
+
+        :param designator: 权限组指示符。
+        :param perm: 权限名。
+        :param allow_missing: 如果权限组不存在，是否静默忽略。
+        :return: 是否确实更改了，如果权限组中没有指定"授予"和"撤销"权限描述则返回 False 。
+        :raise KeyError: 权限组不存在，并且指定为不静默忽略。
+        :raise TypeError: 权限组不可修改。
+        """
+        group_ = self._get_or_create_group(designator, allow_missing, False)
+        if group_ is None:
+            return False
+        perm = self._parse_perm([perm])[0]
+        # noinspection PyUnusedLocal
+        modified = False
+        with contextlib.suppress(ValueError):
+            group_.remove(perm)
+            # noinspection PyUnusedLocal
+            modified = True
+        with contextlib.suppress(ValueError):
+            group_.remove('-' + perm)
+            modified = True
+        return modified
+
     def add_item(self, designator: Union[Event, str], item: str, *,
                  comment: str = None, create_group: bool = True) -> bool:
         """
@@ -113,13 +191,7 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
-        namespace, group = self._parse_designator(designator)
-        group_, found = get(namespace, group)
-        if not found:
-            if not create_group:
-                raise KeyError('No such group')
-            self.add_group(designator)
-            group_, _ = get(namespace, group)
+        group_ = self._get_or_create_group(designator, create_group, True)
         if item.startswith('-'):
             item = '-' + self._parse_perm([item[1:]])[0]
         else:
@@ -141,11 +213,8 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不静默忽略。
         :raise TypeError: 权限组不可修改。
         """
-        namespace, group = self._parse_designator(designator)
-        group_, found = get(namespace, group)
-        if not found:
-            if not allow_missing:
-                raise KeyError('No such group')
+        group_ = self._get_or_create_group(designator, allow_missing, False)
+        if group_ is None:
             return False
         if item.startswith('-'):
             item = '-' + self._parse_perm([item[1:]])[0]
@@ -201,6 +270,20 @@ class PluginHandler:
                     group = int(group)
             return namespace, group
         raise ValueError(f'Invalid designator: {type(designator)}')
+
+    @classmethod
+    def _get_or_create_group(cls, designator: Union[Event, str], silent: bool, create: bool
+                             ) -> Optional[PermissionGroup]:
+        namespace, group = cls._parse_designator(designator)
+        group_, found = get(namespace, group)
+        if not found:
+            if not silent:
+                raise KeyError('No such group')
+            if not create:
+                return None
+            get_namespace(namespace, False).add_group(group)
+            group_, _ = get(namespace, group)
+        return group_
 
     def _parse_perm(self, perm: Iterable[str]) -> List[str]:
         result = []
