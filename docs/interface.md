@@ -17,6 +17,19 @@ from nonebot import require
 P = require("nonebot_plugin_flexperm").register("my_plugin")
 ```
 
+### 类型标注
+
+本插件在`__init__.pyi`文件中提供了`PluginHandler`类的接口说明，可用于支持 IDE 的代码提示、自动补全等功能。可以通过下面的方式使用：
+
+```python
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nonebot_plugin_flexperm import PluginHandler
+P: "PluginHandler" = require("nonebot_plugin_flexperm").register("my_plugin")
+```
+
+注意：检查`TYPE_CHECKING`是必须的。为了避免不同来源多次加载本插件导致配置文件管理混乱，本插件被设计为**不允许直接`import`**。
+
 ## PluginHandler
 
 通过`register`获得的交互对象。

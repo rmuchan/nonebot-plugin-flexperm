@@ -1,19 +1,10 @@
-import contextlib
 from pathlib import Path
-from typing import Optional, Dict, List, Iterable, Union, Tuple
+from typing import Union
 
 from nonebot.adapters import Bot, Event
-from nonebot.log import logger
 from nonebot.permission import Permission
-from nonebot.plugin.export import export
-
-from .check import check, get_permission_group_by_event
-from .core import get, get_namespace, PermissionGroup
-
-plugins: Dict[str, "PluginHandler"] = {}
 
 
-@export()
 def register(plugin_name: str) -> "PluginHandler":
     """
     注册插件，并获取交互对象。
@@ -21,44 +12,24 @@ def register(plugin_name: str) -> "PluginHandler":
     :param plugin_name: 插件名称，不能为"global"。
     :return: 交互对象。
     """
-    if plugin_name == 'global':
-        raise ValueError('Plugin shall not be named "global".')
-    if plugin_name in plugins:
-        logger.warning(f'Plugin {plugin_name} is registered twice!')
-        return plugins[plugin_name]
-    handler = PluginHandler(plugin_name)
-    plugins[plugin_name] = handler
-    return handler
-
 
 class PluginHandler:
-    _sentinel = object()
-
-    def __init__(self, name: str):
-        self.name = name
-        self.preset_: Optional[Path] = None
-        self.check_root_ = False
-
-    def preset(self, preset: Path):
+    def preset(self, preset: Path) -> "PluginHandler":
         """
         设置预设权限组，会被加载到插件名对应的名称空间。
 
         :param preset: 包含权限组的文件路径。
         :return: self
         """
-        self.preset_ = preset
-        return self
 
-    def check_root(self):
+    def check_root(self) -> "PluginHandler":
         """
         设置自动检查根权限。
 
         :return: self
         """
-        self.check_root_ = True
-        return self
 
-    def __call__(self, *perm: str, check_root: bool = _sentinel) -> Permission:
+    def __call__(self, *perm: str, check_root: bool = ...) -> Permission:
         """
         创建权限检查器。若设置了 check_root ，则除了传入的权限外，还会检查本插件的根权限。
 
@@ -73,22 +44,6 @@ class PluginHandler:
         :param check_root: 如果传入布尔值，则替代之前 self.check_root() 的设定。
         :return: 权限检查器，可以直接传递给 nonebot 事件响应器。
         """
-        full = self._parse_perm(perm)
-        if check_root is self._sentinel:
-            check_root = self.check_root_
-        if check_root:
-            full.insert(0, self.name)
-
-        if len(full) == 1:
-            single = full[0]
-
-            async def _check(bot, event):
-                return check(bot, event, single)
-        else:
-            async def _check(bot, event):
-                return all(check(bot, event, px) for px in full)
-
-        return Permission(_check)
 
     def has(self, bot: Bot, event: Event, *perm: str) -> bool:
         """
@@ -99,8 +54,6 @@ class PluginHandler:
         :param perm: 权限名，若传入多个权限则须同时满足。
         :return: 检查结果。
         """
-        full = self._parse_perm(perm)
-        return all(check(bot, event, px) for px in full)
 
     def add_permission(self, designator: Union[Event, str], perm: str, *,
                        comment: str = None, create_group: bool = True) -> bool:
@@ -117,15 +70,6 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
-        group_ = self._get_or_create_group(designator, create_group, True)
-        perm = self._parse_perm([perm])[0]
-        with contextlib.suppress(ValueError):
-            group_.remove('-' + perm)
-        try:
-            group_.add(perm, comment)
-            return True
-        except ValueError:
-            return False
 
     def remove_permission(self, designator: Union[Event, str], perm: str, *,
                           comment: str = None, create_group: bool = True) -> bool:
@@ -142,15 +86,6 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
-        group_ = self._get_or_create_group(designator, create_group, True)
-        perm = self._parse_perm([perm])[0]
-        with contextlib.suppress(ValueError):
-            group_.remove(perm)
-        try:
-            group_.add('-' + perm, comment)
-            return True
-        except ValueError:
-            return False
 
     def reset_permission(self, designator: Union[Event, str], perm: str, *, allow_missing: bool = True) -> bool:
         """
@@ -165,20 +100,6 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不静默忽略。
         :raise TypeError: 权限组不可修改。
         """
-        group_ = self._get_or_create_group(designator, allow_missing, False)
-        if group_ is None:
-            return False
-        perm = self._parse_perm([perm])[0]
-        # noinspection PyUnusedLocal
-        modified = False
-        with contextlib.suppress(ValueError):
-            group_.remove(perm)
-            # noinspection PyUnusedLocal
-            modified = True
-        with contextlib.suppress(ValueError):
-            group_.remove('-' + perm)
-            modified = True
-        return modified
 
     def add_item(self, designator: Union[Event, str], item: str, *,
                  comment: str = None, create_group: bool = True) -> bool:
@@ -193,16 +114,6 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
-        group_ = self._get_or_create_group(designator, create_group, True)
-        if item.startswith('-'):
-            item = '-' + self._parse_perm([item[1:]])[0]
-        else:
-            item = self._parse_perm([item])[0]
-        try:
-            group_.add(item, comment)
-            return True
-        except ValueError:
-            return False
 
     def remove_item(self, designator: Union[Event, str], item: str, *, allow_missing: bool = True) -> bool:
         """
@@ -215,21 +126,8 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不静默忽略。
         :raise TypeError: 权限组不可修改。
         """
-        group_ = self._get_or_create_group(designator, allow_missing, False)
-        if group_ is None:
-            return False
-        if item.startswith('-'):
-            item = '-' + self._parse_perm([item[1:]])[0]
-        else:
-            item = self._parse_perm([item])[0]
-        try:
-            group_.remove(item)
-            return True
-        except ValueError:
-            return False
 
-    @classmethod
-    def add_group(cls, designator: Union[Event, str], *, comment: str = None):
+    def add_group(self, designator: Union[Event, str], *, comment: str = None) -> None:
         """
         创建权限组。
 
@@ -238,11 +136,8 @@ class PluginHandler:
         :raise KeyError: 权限组已存在。
         :raise TypeError: 名称空间不可修改。
         """
-        namespace, group = cls._parse_designator(designator)
-        get_namespace(namespace, False).add_group(group, comment)
 
-    @classmethod
-    def remove_group(cls, designator: Union[Event, str], *, force: bool = False):
+    def remove_group(self, designator: Union[Event, str], *, force: bool = False) -> None:
         """
         移除权限组。
 
@@ -252,51 +147,3 @@ class PluginHandler:
         :raise ValueError: 因权限组非空而没有移除。
         :raise TypeError: 名称空间不可修改。
         """
-        namespace, group = cls._parse_designator(designator)
-        get_namespace(namespace, False).remove_group(group, force)
-
-    @classmethod
-    def _parse_designator(cls, designator: Union[Event, str]) -> Tuple[str, Union[str, int]]:
-        if isinstance(designator, Event):
-            result = get_permission_group_by_event(designator)
-            if result is not None:
-                return result
-            raise ValueError('Unrecognized event type: ' + designator.get_event_name())
-        if isinstance(designator, str):
-            designator_split = designator.split(':', maxsplit=1)
-            if len(designator_split) == 1:
-                return 'global', designator_split[0]
-            namespace, group = designator_split
-            if namespace in ['group', 'user']:
-                with contextlib.suppress(ValueError):
-                    group = int(group)
-            return namespace, group
-        raise ValueError(f'Invalid designator: {type(designator)}')
-
-    @classmethod
-    def _get_or_create_group(cls, designator: Union[Event, str], silent: bool, create: bool
-                             ) -> Optional[PermissionGroup]:
-        namespace, group = cls._parse_designator(designator)
-        group_, found = get(namespace, group)
-        if not found:
-            if not silent:
-                raise KeyError('No such group')
-            if not create:
-                return None
-            get_namespace(namespace, False).add_group(group)
-            group_, _ = get(namespace, group)
-        return group_
-
-    def _parse_perm(self, perm: Iterable[str]) -> List[str]:
-        result = []
-        for p in perm:
-            if not p:
-                result.append(self.name)
-            elif p.startswith('/'):
-                result.append(p[1:])
-            elif p.startswith('.'):
-                prev = result[-1] if result else self.name
-                result.append(prev + p)
-            else:
-                result.append(self.name + '.' + p)
-        return result

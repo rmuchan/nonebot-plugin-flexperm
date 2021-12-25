@@ -1,8 +1,8 @@
-from nonebot import export
+from nonebot.plugin.manager import PluginLoader
 
-from . import cmds
-from .plugin import register
+# noinspection PyUnresolvedReferences
+if type(__loader__) is not PluginLoader:
+    raise TypeError('Do not import flexperm directly. Use "nonebot.require".')
 
-export().register = register
-
-del export, cmds, register
+from . import plugin as _
+from . import cmds as _
