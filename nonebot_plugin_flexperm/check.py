@@ -2,7 +2,7 @@ from typing import Iterable, Tuple, Optional
 
 from nonebot import logger
 from nonebot.adapters import Bot, Event
-from nonebot.adapters.cqhttp import PrivateMessageEvent, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent
 
 from .config import c
 from .core import get, CheckResult, PermissionGroup
@@ -30,7 +30,7 @@ def get_permission_group_by_event(event: Event) -> Optional[Tuple[str, int]]:
 
 def iterate_groups(bot: Bot, event: Event) -> Iterable[PermissionGroup]:
     # 特定用户
-    user = getattr(event, 'user_id', None) or event.get_user_id()
+    user = getattr(event, 'user_id', None) or int(event.get_user_id())
     group, _ = get('user', user)
     yield group
 

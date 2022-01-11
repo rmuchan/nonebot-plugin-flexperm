@@ -1,6 +1,7 @@
 from nonebot import CommandGroup
-from nonebot.adapters import Bot
-from nonebot.adapters.cqhttp import MessageEvent
+from nonebot.adapters import Bot, Message
+from nonebot.adapters.onebot.v11 import MessageEvent
+from nonebot.params import CommandArg, State, RawCommand, EventMessage
 
 from . import core
 from .plugin import register
@@ -14,9 +15,7 @@ def h(x):
     return x.handle()
 
 
-async def ensure_command(_b, e, s):
-    msg = e.get_message()
-    raw_cmd = s["_prefix"]["raw_command"]
+async def ensure_command(msg: Message = EventMessage(), raw_cmd: str = RawCommand()):
     if not msg or not raw_cmd or not all(seg.is_text() for seg in msg):
         return False
 
@@ -28,8 +27,8 @@ async def ensure_command(_b, e, s):
 
 
 @h(cg.command('reload', rule=ensure_command, permission=P('reload')))
-async def _(bot: Bot, event: MessageEvent):
-    force = str(event.message).strip() == 'force'
+async def _(bot: Bot, event: MessageEvent, arg: Message = CommandArg()):
+    force = str(arg).strip() == 'force'
     reloaded = core.reload(force)
     if reloaded:
         await bot.send(event, '重新加载权限配置')
@@ -48,8 +47,9 @@ async def _(bot: Bot, event: MessageEvent):
 
 @h(cg.command('add', rule=ensure_command, permission=P('edit.perm'), state={'add': True}))
 @h(cg.command('remove', rule=ensure_command, permission=P('edit.perm'), state={'add': False}))
-async def _(bot: Bot, event: MessageEvent, state: dict):
-    args = str(event.message).split()
+async def _(bot: Bot, event: MessageEvent, state: dict = State(),
+            raw_command: str = RawCommand(), arg: Message = CommandArg()):
+    args = str(arg).split()
 
     # 一个参数，编辑当前会话的权限
     if len(args) == 1:
@@ -60,8 +60,8 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
         designator, item = args
     # 参数数量错误
     else:
-        usage = '用法：{} [[名称空间:]权限组名] 权限描述'
-        return await bot.send(event, usage.format(state["_prefix"]["raw_command"]))
+        usage = f'用法：{raw_command} [[名称空间:]权限组名] 权限描述'
+        return await bot.send(event, usage)
 
     # 阻止修饰
     if item.startswith('-'):
@@ -86,8 +86,9 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
 @h(cg.command('addgrp', rule=ensure_command, permission=P('edit.group'), state={'add': True}))
 @h(cg.command('rmgrp', rule=ensure_command, permission=P('edit.group'), state={'add': False, 'force': False}))
 @h(cg.command('rmgrpf', rule=ensure_command, permission=P('edit.group.force'), state={'add': False, 'force': True}))
-async def _(bot: Bot, event: MessageEvent, state: dict):
-    arg = str(event.message).strip()
+async def _(bot: Bot, event: MessageEvent, state: dict = State(),
+            raw_command: str = RawCommand(), arg: Message = CommandArg()):
+    arg = str(arg).strip()
 
     # 无参数，编辑当前会话权限组
     if not arg:
@@ -97,8 +98,8 @@ async def _(bot: Bot, event: MessageEvent, state: dict):
         designator = arg
     # 参数数量错误
     else:
-        usage = '用法：{} [[名称空间:]权限组名]'
-        return await bot.send(event, usage.format(state["_prefix"]["raw_command"]))
+        usage = f'用法：{raw_command} [[名称空间:]权限组名]'
+        return await bot.send(event, usage)
 
     try:
         if state['add']:
