@@ -8,7 +8,7 @@ from .plugin import register
 
 P = register('flexperm')
 
-cg = CommandGroup('flexperm')
+cg = CommandGroup('flexperm', block=True)
 
 
 def h(x):
