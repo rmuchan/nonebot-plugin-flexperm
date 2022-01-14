@@ -26,7 +26,7 @@ pip install nonebot-plugin-flexperm
 
 ## 依赖
 
-目前只支持 cqhttp 协议，之后可能会支持其他协议。
+目前只支持 OneBot V11 协议，之后可能会支持其他协议。
 
 ## 使用
 
