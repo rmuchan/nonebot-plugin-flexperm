@@ -74,9 +74,8 @@ cmd = on_command("my_command", permission=P("my_command"))
 
 参数：
 
-- `bot: Bot`，机器人。
-- `event: Event`，事件。
 - `*perm: str`，需要检查的权限，若传入多个则须全部满足。
+- `event: Event = None`，事件，默认为当前正在处理的事件。
 
 返回类型：`bool`
 
@@ -85,7 +84,7 @@ cmd = on_command("my_command", permission=P("my_command"))
 ```python
 @cmd.handle()
 async def _(bot, event):
-    if P.has(bot, event, "my_command.inner"):
+    if P.has("my_command.inner"):
         ...
 ```
 
@@ -154,7 +153,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
 - `perm: str`，权限名。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
@@ -177,7 +176,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
 - `perm: str`，权限名。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
@@ -200,7 +199,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
 - `perm: str`，权限名。
 - 以下参数只能以关键字参数形式传入。
 - `allow_missing: bool = True`，如果权限组不存在，是否静默忽略。
@@ -220,7 +219,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
 - `item: str`，权限描述。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
@@ -241,7 +240,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
 - `item: str`，权限描述。
 - 以下参数只能以关键字参数形式传入。
 - `allow_missing: bool = True`，如果权限组不存在，是否静默忽略。
@@ -261,7 +260,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
 
@@ -276,7 +275,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
 - 以下参数只能以关键字参数形式传入。
 - `force: bool = False`，是否允许移除非空的权限组。
 
@@ -290,7 +289,7 @@ P.check_root()
 
 ## 权限组指示符
 
-权限组指示符可以是一个字符串或一个 NoneBot `Event` 对象，在本插件的接口中的出现形式通常是名为`designator`的参数。指示符会按下列规则解释为名称空间和权限组名：
+权限组指示符可以是一个字符串、一个 NoneBot `Event` 对象或者`None`，在本插件的接口中的出现形式通常是名为`designator`的参数。指示符会按下列规则解释为名称空间和权限组名：
 
 - 如果指示符是字符串：
   - 如果指示符包含冒号，则以第一个冒号之前的内容为名称空间，之后的内容为权限组名。
@@ -300,3 +299,5 @@ P.check_root()
   - 对于群聊消息事件，代表`group`名称空间，群号为权限组名。
   - 对于私聊消息事件，代表`user`名称空间，用户ID（QQ号）为权限组名。
   - 其他事件类型暂不支持。
+- 如果指示符是`None`：
+  - 视为当前正在处理的事件。

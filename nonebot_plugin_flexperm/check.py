@@ -1,17 +1,17 @@
 from typing import Iterable, Tuple, Optional
 
-from nonebot import logger
-from nonebot.adapters import Bot, Event
+from nonebot import logger, get_driver
+from nonebot.adapters import Event
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent
 
 from .config import c
 from .core import get, CheckResult, PermissionGroup
 
 
-def check(bot: Bot, event: Event, perm: str) -> bool:
+def check(event: Event, perm: str) -> bool:
     if c.flexperm_debug_check:
         logger.debug('Checking {}', perm)
-    for group in iterate_groups(bot, event):
+    for group in iterate_groups(event):
         r = group.check(perm)
         if c.flexperm_debug_check:
             logger.debug('Got {} from {}', r, group)
@@ -28,14 +28,14 @@ def get_permission_group_by_event(event: Event) -> Optional[Tuple[str, int]]:
         return 'user', event.user_id
 
 
-def iterate_groups(bot: Bot, event: Event) -> Iterable[PermissionGroup]:
+def iterate_groups(event: Event) -> Iterable[PermissionGroup]:
     # 特定用户
     user = getattr(event, 'user_id', None) or int(event.get_user_id())
     group, _ = get('user', user)
     yield group
 
     # Bot超级用户
-    if event.get_user_id() in bot.config.superusers:
+    if event.get_user_id() in get_driver().config.superusers:
         group, _ = get('global', 'superuser')
         yield group
 

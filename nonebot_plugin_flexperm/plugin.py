@@ -4,6 +4,7 @@ from typing import Optional, Dict, List, Iterable, Union, Tuple
 
 from nonebot.adapters import Bot, Event
 from nonebot.log import logger
+from nonebot.matcher import current_event
 from nonebot.permission import Permission
 from nonebot.plugin.export import export
 
@@ -82,27 +83,42 @@ class PluginHandler:
         if len(full) == 1:
             single = full[0]
 
-            async def _check(bot, event):
-                return check(bot, event, single)
+            async def _check(event):
+                return check(event, single)
         else:
-            async def _check(bot, event):
-                return all(check(bot, event, px) for px in full)
+            async def _check(event):
+                return all(check(event, px) for px in full)
 
         return Permission(_check)
 
-    def has(self, bot: Bot, event: Event, *perm: str) -> bool:
+    def has(self, *perm: str, event: Event = None) -> bool:
         """
         检查事件是否具有指定权限。会修饰权限名，详见 __call__ 。不会自动检查根权限，无论是否设置 check_root 。
 
-        :param bot: 机器人。
-        :param event: 事件。
         :param perm: 权限名，若传入多个权限则须同时满足。
+        :param event: 事件，默认为当前正在处理的事件。
         :return: 检查结果。
         """
-        full = self._parse_perm(perm)
-        return all(check(bot, event, px) for px in full)
+        deprecate = False
+        if perm and isinstance(perm[0], Bot):
+            perm = perm[1:]
+            deprecate = True
+        if perm and isinstance(perm[0], Event):
+            if event is not None:
+                raise TypeError("has() got multiple values for argument 'event'")
+            event, *perm = perm
+            deprecate = True
+        if deprecate:
+            import warnings
+            warnings.warn('Positional parameters "bot" and "event" are deprecated and will be removed soon.',
+                          DeprecationWarning, stacklevel=2)
 
-    def add_permission(self, designator: Union[Event, str], perm: str, *,
+        if event is None:
+            event = current_event.get()
+        full = self._parse_perm(perm)
+        return all(check(event, px) for px in full)
+
+    def add_permission(self, designator: Union[Event, str, None], perm: str, *,
                        comment: str = None, create_group: bool = True) -> bool:
         """
         向权限组添加一项权限。会修饰权限名。
@@ -127,7 +143,7 @@ class PluginHandler:
         except ValueError:
             return False
 
-    def remove_permission(self, designator: Union[Event, str], perm: str, *,
+    def remove_permission(self, designator: Union[Event, str, None], perm: str, *,
                           comment: str = None, create_group: bool = True) -> bool:
         """
         从权限组去除一项权限。会修饰权限名。
@@ -152,7 +168,7 @@ class PluginHandler:
         except ValueError:
             return False
 
-    def reset_permission(self, designator: Union[Event, str], perm: str, *, allow_missing: bool = True) -> bool:
+    def reset_permission(self, designator: Union[Event, str, None], perm: str, *, allow_missing: bool = True) -> bool:
         """
         把权限组中关于一项权限的描述恢复默认。会修饰权限名。
 
@@ -180,7 +196,7 @@ class PluginHandler:
             modified = True
         return modified
 
-    def add_item(self, designator: Union[Event, str], item: str, *,
+    def add_item(self, designator: Union[Event, str, None], item: str, *,
                  comment: str = None, create_group: bool = True) -> bool:
         """
         向权限组添加权限描述。会修饰权限名。
@@ -204,7 +220,7 @@ class PluginHandler:
         except ValueError:
             return False
 
-    def remove_item(self, designator: Union[Event, str], item: str, *, allow_missing: bool = True) -> bool:
+    def remove_item(self, designator: Union[Event, str, None], item: str, *, allow_missing: bool = True) -> bool:
         """
         从权限组中移除权限描述。会修饰权限名。
 
@@ -229,7 +245,7 @@ class PluginHandler:
             return False
 
     @classmethod
-    def add_group(cls, designator: Union[Event, str], *, comment: str = None):
+    def add_group(cls, designator: Union[Event, str, None], *, comment: str = None):
         """
         创建权限组。
 
@@ -242,7 +258,7 @@ class PluginHandler:
         get_namespace(namespace, False).add_group(group, comment)
 
     @classmethod
-    def remove_group(cls, designator: Union[Event, str], *, force: bool = False):
+    def remove_group(cls, designator: Union[Event, str, None], *, force: bool = False):
         """
         移除权限组。
 
@@ -256,7 +272,9 @@ class PluginHandler:
         get_namespace(namespace, False).remove_group(group, force)
 
     @classmethod
-    def _parse_designator(cls, designator: Union[Event, str]) -> Tuple[str, Union[str, int]]:
+    def _parse_designator(cls, designator: Union[Event, str, None]) -> Tuple[str, Union[str, int]]:
+        if designator is None:
+            designator = current_event.get()
         if isinstance(designator, Event):
             result = get_permission_group_by_event(designator)
             if result is not None:
@@ -274,7 +292,7 @@ class PluginHandler:
         raise ValueError(f'Invalid designator: {type(designator)}')
 
     @classmethod
-    def _get_or_create_group(cls, designator: Union[Event, str], silent: bool, create: bool
+    def _get_or_create_group(cls, designator: Union[Event, str, None], silent: bool, create: bool
                              ) -> Optional[PermissionGroup]:
         namespace, group = cls._parse_designator(designator)
         group_, found = get(namespace, group)
