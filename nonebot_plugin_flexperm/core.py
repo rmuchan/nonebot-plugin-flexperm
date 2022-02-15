@@ -114,7 +114,7 @@ try:
     sched = nonebot.require('nonebot_plugin_apscheduler').scheduler
     sched.add_job(save_all, 'interval', minutes=5, coalesce=True,
                   id='flexperm.save', replace_existing=True)
-except (AttributeError, TypeError):
+except (RuntimeError, AttributeError, TypeError):
     @nonebot_driver.on_startup
     def _():
         import asyncio
