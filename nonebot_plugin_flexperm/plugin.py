@@ -13,6 +13,8 @@ from .core import get, get_namespace, PermissionGroup
 
 plugins: Dict[str, "PluginHandler"] = {}
 
+_sentinel = object()
+
 
 @export()
 def register(plugin_name: str) -> "PluginHandler":
@@ -33,8 +35,6 @@ def register(plugin_name: str) -> "PluginHandler":
 
 
 class PluginHandler:
-    _sentinel = object()
-
     def __init__(self, name: str):
         self.name = name
         self.preset_: Optional[Path] = None
@@ -75,7 +75,7 @@ class PluginHandler:
         :return: 权限检查器，可以直接传递给 nonebot 事件响应器。
         """
         full = self._parse_perm(perm)
-        if check_root is self._sentinel:
+        if check_root is _sentinel:
             check_root = self.check_root_
         if check_root:
             full.insert(0, self.name)
@@ -118,7 +118,7 @@ class PluginHandler:
         full = self._parse_perm(perm)
         return all(check(event, px) for px in full)
 
-    def add_permission(self, designator: Union[Event, str, None], perm: str, *,
+    def add_permission(self, designator: Union[Event, str, None], perm: str = _sentinel, *,
                        comment: str = None, create_group: bool = True) -> bool:
         """
         向权限组添加一项权限。会修饰权限名。
@@ -133,6 +133,9 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
+        if perm is _sentinel:
+            designator, perm = None, designator
+
         group_ = self._get_or_create_group(designator, create_group, True)
         perm = self._parse_perm([perm])[0]
         with contextlib.suppress(ValueError):
@@ -143,7 +146,7 @@ class PluginHandler:
         except ValueError:
             return False
 
-    def remove_permission(self, designator: Union[Event, str, None], perm: str, *,
+    def remove_permission(self, designator: Union[Event, str, None], perm: str = _sentinel, *,
                           comment: str = None, create_group: bool = True) -> bool:
         """
         从权限组去除一项权限。会修饰权限名。
@@ -158,6 +161,9 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
+        if perm is _sentinel:
+            designator, perm = None, designator
+
         group_ = self._get_or_create_group(designator, create_group, True)
         perm = self._parse_perm([perm])[0]
         with contextlib.suppress(ValueError):
@@ -168,7 +174,8 @@ class PluginHandler:
         except ValueError:
             return False
 
-    def reset_permission(self, designator: Union[Event, str, None], perm: str, *, allow_missing: bool = True) -> bool:
+    def reset_permission(self, designator: Union[Event, str, None], perm: str = _sentinel, *,
+                         allow_missing: bool = True) -> bool:
         """
         把权限组中关于一项权限的描述恢复默认。会修饰权限名。
 
@@ -181,6 +188,9 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不静默忽略。
         :raise TypeError: 权限组不可修改。
         """
+        if perm is _sentinel:
+            designator, perm = None, designator
+
         group_ = self._get_or_create_group(designator, allow_missing, False)
         if group_ is None:
             return False
@@ -196,7 +206,7 @@ class PluginHandler:
             modified = True
         return modified
 
-    def add_item(self, designator: Union[Event, str, None], item: str, *,
+    def add_item(self, designator: Union[Event, str, None], item: str = _sentinel, *,
                  comment: str = None, create_group: bool = True) -> bool:
         """
         向权限组添加权限描述。会修饰权限名。
@@ -209,6 +219,9 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不自动创建。
         :raise TypeError: 权限组不可修改。
         """
+        if item is _sentinel:
+            designator, item = None, designator
+
         group_ = self._get_or_create_group(designator, create_group, True)
         if item.startswith('-'):
             item = '-' + self._parse_perm([item[1:]])[0]
@@ -220,7 +233,8 @@ class PluginHandler:
         except ValueError:
             return False
 
-    def remove_item(self, designator: Union[Event, str, None], item: str, *, allow_missing: bool = True) -> bool:
+    def remove_item(self, designator: Union[Event, str, None], item: str = _sentinel, *,
+                    allow_missing: bool = True) -> bool:
         """
         从权限组中移除权限描述。会修饰权限名。
 
@@ -231,6 +245,9 @@ class PluginHandler:
         :raise KeyError: 权限组不存在，并且指定为不静默忽略。
         :raise TypeError: 权限组不可修改。
         """
+        if item is _sentinel:
+            designator, item = None, designator
+
         group_ = self._get_or_create_group(designator, allow_missing, False)
         if group_ is None:
             return False
@@ -245,7 +262,7 @@ class PluginHandler:
             return False
 
     @classmethod
-    def add_group(cls, designator: Union[Event, str, None], *, comment: str = None):
+    def add_group(cls, designator: Union[Event, str, None] = None, *, comment: str = None):
         """
         创建权限组。
 
@@ -258,7 +275,7 @@ class PluginHandler:
         get_namespace(namespace, False).add_group(group, comment)
 
     @classmethod
-    def remove_group(cls, designator: Union[Event, str, None], *, force: bool = False):
+    def remove_group(cls, designator: Union[Event, str, None] = None, *, force: bool = False):
         """
         移除权限组。
 

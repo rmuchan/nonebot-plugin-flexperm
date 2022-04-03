@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, overload
 
 from nonebot.adapters import Event
 from nonebot.permission import Permission
@@ -54,6 +54,11 @@ class PluginHandler:
         :return: 检查结果。
         """
 
+    @overload
+    def add_permission(self, perm: str, *,
+                       comment: str = None, create_group: bool = True) -> bool: ...
+
+    @overload
     def add_permission(self, designator: Union[Event, str, None], perm: str, *,
                        comment: str = None, create_group: bool = True) -> bool:
         """
@@ -70,6 +75,11 @@ class PluginHandler:
         :raise TypeError: 权限组不可修改。
         """
 
+    @overload
+    def remove_permission(self, perm: str, *,
+                          comment: str = None, create_group: bool = True) -> bool: ...
+
+    @overload
     def remove_permission(self, designator: Union[Event, str, None], perm: str, *,
                           comment: str = None, create_group: bool = True) -> bool:
         """
@@ -86,6 +96,10 @@ class PluginHandler:
         :raise TypeError: 权限组不可修改。
         """
 
+    @overload
+    def reset_permission(self, perm: str, *, allow_missing: bool = True) -> bool: ...
+
+    @overload
     def reset_permission(self, designator: Union[Event, str, None], perm: str, *, allow_missing: bool = True) -> bool:
         """
         把权限组中关于一项权限的描述恢复默认。会修饰权限名。
@@ -100,6 +114,11 @@ class PluginHandler:
         :raise TypeError: 权限组不可修改。
         """
 
+    @overload
+    def add_item(self, item: str, *,
+                 comment: str = None, create_group: bool = True) -> bool: ...
+
+    @overload
     def add_item(self, designator: Union[Event, str, None], item: str, *,
                  comment: str = None, create_group: bool = True) -> bool:
         """
@@ -114,6 +133,10 @@ class PluginHandler:
         :raise TypeError: 权限组不可修改。
         """
 
+    @overload
+    def remove_item(self, item: str, *, allow_missing: bool = True) -> bool: ...
+
+    @overload
     def remove_item(self, designator: Union[Event, str, None], item: str, *, allow_missing: bool = True) -> bool:
         """
         从权限组中移除权限描述。会修饰权限名。
@@ -126,7 +149,7 @@ class PluginHandler:
         :raise TypeError: 权限组不可修改。
         """
 
-    def add_group(self, designator: Union[Event, str, None], *, comment: str = None) -> None:
+    def add_group(self, designator: Union[Event, str, None] = None, *, comment: str = None) -> None:
         """
         创建权限组。
 
@@ -136,7 +159,7 @@ class PluginHandler:
         :raise TypeError: 名称空间不可修改。
         """
 
-    def remove_group(self, designator: Union[Event, str, None], *, force: bool = False) -> None:
+    def remove_group(self, designator: Union[Event, str, None] = None, *, force: bool = False) -> None:
         """
         移除权限组。
 

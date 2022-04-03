@@ -142,7 +142,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)，可以缺省为`None`。
 - `perm: str`，权限名。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
@@ -165,7 +165,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)，可以缺省为`None`。
 - `perm: str`，权限名。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
@@ -188,7 +188,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)，可以缺省为`None`。
 - `perm: str`，权限名。
 - 以下参数只能以关键字参数形式传入。
 - `allow_missing: bool = True`，如果权限组不存在，是否静默忽略。
@@ -208,7 +208,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)，可以缺省为`None`。
 - `item: str`，权限描述。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
@@ -229,7 +229,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)，可以缺省为`None`。
 - `item: str`，权限描述。
 - 以下参数只能以关键字参数形式传入。
 - `allow_missing: bool = True`，如果权限组不存在，是否静默忽略。
@@ -249,7 +249,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None] = None`，[权限组指示符](#权限组指示符)。
 - 以下参数只能以关键字参数形式传入。
 - `comment: str = None`，注释，会以 YAML 注释的形式添加在配置文件对应项目的行尾。
 
@@ -264,7 +264,7 @@ P.check_root()
 
 参数：
 
-- `designator: Union[Event, str, None]`，[权限组指示符](#权限组指示符)。
+- `designator: Union[Event, str, None] = None`，[权限组指示符](#权限组指示符)。
 - 以下参数只能以关键字参数形式传入。
 - `force: bool = False`，是否允许移除非空的权限组。
 
