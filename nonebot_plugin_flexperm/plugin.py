@@ -9,7 +9,7 @@ from nonebot.permission import Permission
 from nonebot.plugin.export import export
 
 from .check import check, get_permission_group_by_event
-from .core import get, get_namespace, PermissionGroup, decorate_permission
+from .core import get, get_namespace, PermissionGroup, decorate_permission, parse_qualified_group_name
 
 plugins: Dict[str, "PluginHandler"] = {}
 
@@ -340,14 +340,7 @@ class PluginHandler:
                 return result
             raise ValueError('Unrecognized event type: ' + designator.get_event_name())
         if isinstance(designator, str):
-            designator_split = designator.split(':', maxsplit=1)
-            if len(designator_split) == 1:
-                return default_namespace, designator_split[0]
-            namespace, group = designator_split
-            if namespace in ['group', 'user']:
-                with contextlib.suppress(ValueError):
-                    group = int(group)
-            return namespace, group
+            return parse_qualified_group_name(designator, default_namespace)
         raise ValueError(f'Invalid designator: {type(designator)}')
 
     @classmethod

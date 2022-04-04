@@ -106,6 +106,8 @@ async def _(bot: Bot, event: MessageEvent, state: dict = State(),
             result = P.add_inheritance(designator, target)
         else:
             result = P.remove_inheritance(designator, target)
+    except KeyError:
+        await bot.send(event, '权限组不存在')
     except TypeError:
         await bot.send(event, '权限组不可修改')
     else:

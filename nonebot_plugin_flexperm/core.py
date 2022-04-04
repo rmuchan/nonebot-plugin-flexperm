@@ -335,13 +335,8 @@ class PermissionGroup:
         self.referer = referer or self
 
         for parent in desc.inherits:
-            split = parent.split(':', maxsplit=1)
-            if not split:
-                continue
-            if len(split) == 1:
-                res, found = get(self.namespace.name, split[0], self, True)
-            else:
-                res, found = get(split[0], split[1], self, True)
+            namespace, group = parse_qualified_group_name(parent)
+            res, found = get(namespace, group, self, True)
             if found:
                 self.inherits.append(res)
 
@@ -482,6 +477,18 @@ def check_wildcard(item: str, set_: Set[str]) -> bool:
             return True
         segments.pop()
     return False
+
+
+def parse_qualified_group_name(qn: str, default_namespace: str = 'global') -> Tuple[str, Union[str, int]]:
+    split = qn.split(':', maxsplit=1)
+    if len(split) == 1:
+        namespace, group = default_namespace, split[0]
+    else:
+        namespace, group = split
+    if namespace in ['group', 'user']:
+        with contextlib.suppress(ValueError):
+            group = int(group)
+    return namespace, group
 
 
 def decorate_permission(base: str, perm: Iterable[str]) -> List[str]:
