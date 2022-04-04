@@ -100,20 +100,6 @@ class PluginHandler:
         :param event: 事件，默认为当前正在处理的事件。
         :return: 检查结果。
         """
-        deprecate = False
-        if perm and isinstance(perm[0], Bot):
-            perm = perm[1:]
-            deprecate = True
-        if perm and isinstance(perm[0], Event):
-            if event is not None:
-                raise TypeError("has() got multiple values for argument 'event'")
-            event, *perm = perm
-            deprecate = True
-        if deprecate:
-            import warnings
-            warnings.warn('Positional parameters "bot" and "event" are deprecated and will be removed soon.',
-                          DeprecationWarning, stacklevel=2)
-
         if event is None:
             event = current_event.get()
         full = self._parse_perm(perm)
