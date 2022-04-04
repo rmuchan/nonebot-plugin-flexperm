@@ -40,6 +40,22 @@
 
 需要权限：`flexperm.edit.perm`
 
+## /flexperm.addinh
+
+添加继承关系。
+
+用法：`/flexperm.addinh [权限组指示符] 继承权限组的指示符`
+
+需要权限：`flexperm.edit.inherit`
+
+## /flexperm.rminh
+
+移除继承关系。
+
+用法：`/flexperm.rminh [权限组指示符] 继承权限组的指示符`
+
+需要权限：`flexperm.edit.inherit`
+
 ## /flexperm.addgrp
 
 添加权限组。
