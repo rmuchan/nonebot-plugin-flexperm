@@ -1,8 +1,9 @@
+import contextlib
 from collections import OrderedDict
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, Tuple, List, Set, Dict
+from typing import TYPE_CHECKING, Optional, Union, Tuple, List, Set, Dict
 
 import nonebot
 from nonebot.log import logger
@@ -186,7 +187,7 @@ class Namespace:
             cycle = [f'{self.name}:{name}']
             it = referer
             while it and not (it.name == name and it.namespace is self):
-                cycle.append(f'{it.namespace.name}:{it.name}')
+                cycle.append(it.qualified_name())
                 it = it.referer
             cycle.append(f'{self.name}:{name}')
             logger.error('Inheritance cycle detected: {}', ' -> '.join(reversed(cycle)))
@@ -202,8 +203,8 @@ class Namespace:
         if group_desc is None:
             if required:
                 if referer:
-                    logger.error('Permission group {}:{} not found (required from {}:{})',
-                                 self.name, name, referer.namespace.name, referer.name)
+                    logger.error('Permission group {}:{} not found (required from {})',
+                                 self.name, name, referer.qualified_name())
                 else:
                     logger.error('Permission group {}:{} not found', self.name, name)
             return NullPermissionGroup(), False
@@ -283,7 +284,10 @@ class PermissionGroup:
             self.cache: OrderedDict[str, CheckResult] = OrderedDict()
 
     def __repr__(self):
-        return f'<PermissionGroup {self.namespace.name}:{self.name}>'
+        return f'<PermissionGroup {self.qualified_name()}>'
+
+    def qualified_name(self):
+        return f'{self.namespace.name}:{self.name}'
 
     def check(self, perm: str) -> Optional["CheckResult"]:
         """
@@ -394,6 +398,48 @@ class PermissionGroup:
             permissions = desc['permissions']
             permissions.remove(item)
 
+    def add_inheritance(self, target: "PermissionGroup", comment: str = None):
+        """
+        添加继承关系。
+
+        :param target: 需继承权限组。
+        :param comment: 注释。
+        :raise ValueError: 权限组中已有指定继承关系。
+        :raise TypeError: 权限组不可修改。
+        """
+        with self.namespace.modifying(self.name) as desc:
+            if target in self.inherits:
+                raise ValueError('Duplicate inheritance')
+            self.inherits.append(target)
+            self.cache.clear()
+            inherits: CommentedSeq = desc.setdefault('inherits', CommentedSeq())
+            inherits.append(target.qualified_name())
+            if comment is not None:
+                inherits.yaml_add_eol_comment(comment, len(inherits) - 1)  # yaml_add_eol_comment 不支持负数下标
+
+    def remove_inheritance(self, target: "PermissionGroup"):
+        """
+        移除继承关系。
+
+        :param target: 需移除继承权限组。
+        :raise ValueError: 权限组中没有指定继承关系。
+        :raise TypeError: 权限组不可修改。
+        """
+        with self.namespace.modifying(self.name) as desc:
+            if target not in self.inherits:
+                raise ValueError('No such inheritance')
+            self.inherits.remove(target)
+            self.cache.clear()
+
+            inherits: CommentedSeq = desc.setdefault('inherits', CommentedSeq())
+            possible_decls = [target.qualified_name()]
+            if target.namespace is loaded['global']:
+                possible_decls.append(target.name)
+            for decl in possible_decls:
+                with contextlib.suppress(ValueError):
+                    inherits.remove(decl)
+                    break
+
 
 class GroupDesc(BaseModel):
     """
@@ -432,21 +478,18 @@ def check_wildcard(item: str, set_: Set[str]) -> bool:
     return False
 
 
-class NullPermissionGroup(PermissionGroup):
-    def __init__(self):
-        super().__init__(None, 'empty')
+if TYPE_CHECKING:
+    class NullPermissionGroup(PermissionGroup):
+        def __new__(cls, *args, **kwargs):
+            raise TypeError
 
-    def __repr__(self):
-        return f'<NullPermissionGroup>'
+else:
+    class NullPermissionGroup:
+        def __init__(self):
+            pass
 
-    def check(self, perm):
-        pass
+        def __repr__(self):
+            return f'<NullPermissionGroup>'
 
-    def populate(self, desc, referer):
-        raise TypeError
-
-    def add(self, item: str, comment: str = None):
-        raise TypeError
-
-    def remove(self, item: str):
-        raise TypeError
+        def check(self, perm):
+            pass
