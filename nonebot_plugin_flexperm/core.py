@@ -3,7 +3,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union, Tuple, List, Set, Dict
+from typing import TYPE_CHECKING, Optional, Union, Tuple, List, Set, Dict, Iterable
 
 import nonebot
 from nonebot.log import logger
@@ -43,7 +43,7 @@ def get_namespace(namespace: str, required: bool, path_override: Path = None) ->
         path = path.resolve()
         ns = loaded_by_path.get(path)
         if ns is None:
-            ns = Namespace(namespace, required, path, path_override is None)
+            ns = Namespace(namespace, path, required=required, modifiable=path_override is None)
             loaded_by_path[path] = ns
         loaded[namespace] = ns
     return ns
@@ -67,7 +67,7 @@ def reload(force: bool = False) -> bool:
 
     # 默认权限组
     global_ = get_namespace('global', False)
-    defaults = Namespace('global', True, Path(__file__).parent / 'defaults.yml', False)
+    defaults = Namespace('global', Path(__file__).parent / 'defaults.yml', required=True, modifiable=False)
     for k, v in defaults.config.items():
         global_.config.setdefault(k, v)
     default_groups.update(defaults.config)
@@ -77,6 +77,7 @@ def reload(force: bool = False) -> bool:
     for name, handler in plugins.items():
         if handler.preset_:
             namespace = get_namespace(name, True, handler.preset_)
+            namespace.auto_decorate = handler.decorate_
             plugin_namespaces.append(namespace)
 
     # 生成全局组默认配置
@@ -133,7 +134,9 @@ class Namespace:
     权限组名称空间。每个名称空间对应一个配置文件。
     """
 
-    def __init__(self, namespace: str, required: bool, path: Optional[Path], modifiable: bool):
+    auto_decorate: bool = False
+
+    def __init__(self, namespace: str, path: Optional[Path], required: bool, modifiable: bool):
         self.name = namespace
         self.path = path
         self.groups: Dict[Union[str, int], PermissionGroup] = {}
@@ -222,7 +225,7 @@ class Namespace:
                     desc.inherits.append(f'{pn.name}:{name}')
 
         self.groups[name] = group = PermissionGroup(self, name)
-        group.populate(desc, referer)
+        group.populate(desc, referer, self.name if self.auto_decorate else None)
         return group, True
 
     @contextmanager
@@ -321,12 +324,13 @@ class PermissionGroup:
         if allowed:
             return CheckResult.ALLOW
 
-    def populate(self, desc: "GroupDesc", referer: Optional["PermissionGroup"]):
+    def populate(self, desc: "GroupDesc", referer: Optional["PermissionGroup"], decorate_base: Optional[str]):
         """
         从描述中读取权限组内容，同时会加载依赖的组。
 
         :param desc: 权限组描述。
         :param referer: 引用者。
+        :param decorate_base: 如果需要修饰，插件名。
         """
         self.referer = referer or self
 
@@ -347,6 +351,8 @@ class PermissionGroup:
                 item = item[1:]
             else:
                 target = self.allows
+            if decorate_base is not None:
+                [item] = decorate_permission(decorate_base, [item])
             target.add(item)
 
         del self.referer
@@ -476,6 +482,21 @@ def check_wildcard(item: str, set_: Set[str]) -> bool:
             return True
         segments.pop()
     return False
+
+
+def decorate_permission(base: str, perm: Iterable[str]) -> List[str]:
+    result = []
+    for p in perm:
+        if not p:
+            result.append(base)
+        elif p.startswith('/'):
+            result.append(p[1:])
+        elif p.startswith('.'):
+            prev = result[-1] if result else base
+            result.append(prev + p)
+        else:
+            result.append(base + '.' + p)
+    return result
 
 
 if TYPE_CHECKING:

@@ -84,6 +84,7 @@ async def _(bot, event):
 参数：
 
 - `preset: Path`，预设文件路径。
+- `decorate: bool = False`，是否自动[修饰](#权限名称修饰)预设包含的权限名。
 
 返回`self`，可以在`register`之后直接链式调用。
 
@@ -113,6 +114,23 @@ editor:
 ```
 
 此时，权限组`global:superuser`将自动继承`my_plugin:superuser`，因此超级用户自动具有`my_plugin`下所有子权限（除非被撤销）。权限组`my_plugin:editor`不会直接起作用，但其他权限组可以通过继承它来获得`my_plugin.read`和`my_plugin.write`两项权限。
+
+如果设置了`decorate`参数，预设配置涉及到的权限名称会被自动[修饰](#权限名称修饰)，此时就不必在每个描述前手动添加插件名。例如，下面这种写法与上一个例子等效：
+
+```python
+P.preset(Path(__file__).parent / "preset.yml", decorate=True)
+```
+
+```yaml
+superuser:
+  permissions:
+    - "*"
+  
+editor:
+  permissions:
+    - read
+    - write
+```
 
 ### check_root
 

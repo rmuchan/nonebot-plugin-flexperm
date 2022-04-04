@@ -16,11 +16,12 @@ def register(plugin_name: str) -> "PluginHandler":
     """
 
 class PluginHandler:
-    def preset(self, preset: Path) -> "PluginHandler":
+    def preset(self, preset: Path, decorate: bool = False) -> "PluginHandler":
         """
         设置预设权限组，会被加载到插件名对应的名称空间。
 
         :param preset: 包含权限组的文件路径。
+        :param decorate: 是否自动修饰预设包含的权限名。
         :return: self
         """
 

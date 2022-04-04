@@ -1,15 +1,15 @@
 import contextlib
 from pathlib import Path
-from typing import Optional, Dict, List, Iterable, Union, Tuple
+from typing import Optional, Dict, Union, Tuple
 
-from nonebot.adapters import Bot, Event
+from nonebot.adapters import Event
 from nonebot.log import logger
 from nonebot.matcher import current_event
 from nonebot.permission import Permission
 from nonebot.plugin.export import export
 
 from .check import check, get_permission_group_by_event
-from .core import get, get_namespace, PermissionGroup
+from .core import get, get_namespace, PermissionGroup, decorate_permission
 
 plugins: Dict[str, "PluginHandler"] = {}
 
@@ -39,16 +39,19 @@ class PluginHandler:
     def __init__(self, name: str):
         self.name = name
         self.preset_: Optional[Path] = None
+        self.decorate_ = False
         self.check_root_ = False
 
-    def preset(self, preset: Path):
+    def preset(self, preset: Path, decorate: bool = False):
         """
         设置预设权限组，会被加载到插件名对应的名称空间。
 
         :param preset: 包含权限组的文件路径。
+        :param decorate: 是否自动修饰预设包含的权限名。
         :return: self
         """
         self.preset_ = preset
+        self.decorate_ = decorate
         return self
 
     def check_root(self):
@@ -75,7 +78,7 @@ class PluginHandler:
         :param check_root: 如果传入布尔值，则替代之前 self.check_root() 的设定。
         :return: 权限检查器，可以直接传递给 nonebot 事件响应器。
         """
-        full = self._parse_perm(perm)
+        full = decorate_permission(self.name, perm)
         if check_root is _sentinel:
             check_root = self.check_root_
         if check_root:
@@ -102,7 +105,7 @@ class PluginHandler:
         """
         if event is None:
             event = current_event.get()
-        full = self._parse_perm(perm)
+        full = decorate_permission(self.name, perm)
         return all(check(event, px) for px in full)
 
     def add_permission(self, designator: Designator, perm: str = _sentinel, *,
@@ -124,7 +127,7 @@ class PluginHandler:
             designator, perm = None, designator
 
         group_ = self._get_or_create_group(designator, create_group, True)
-        perm = self._parse_perm([perm])[0]
+        [perm] = decorate_permission(self.name, [perm])
         with contextlib.suppress(ValueError):
             group_.remove('-' + perm)
         try:
@@ -152,7 +155,7 @@ class PluginHandler:
             designator, perm = None, designator
 
         group_ = self._get_or_create_group(designator, create_group, True)
-        perm = self._parse_perm([perm])[0]
+        [perm] = decorate_permission(self.name, [perm])
         with contextlib.suppress(ValueError):
             group_.remove(perm)
         try:
@@ -181,7 +184,7 @@ class PluginHandler:
         group_ = self._get_or_create_group(designator, allow_missing, False)
         if group_ is None:
             return False
-        perm = self._parse_perm([perm])[0]
+        [perm] = decorate_permission(self.name, [perm])
         # noinspection PyUnusedLocal
         modified = False
         with contextlib.suppress(ValueError):
@@ -211,9 +214,10 @@ class PluginHandler:
 
         group_ = self._get_or_create_group(designator, create_group, True)
         if item.startswith('-'):
-            item = '-' + self._parse_perm([item[1:]])[0]
+            [item] = decorate_permission(self.name, [item[1:]])
+            item = '-' + item
         else:
-            item = self._parse_perm([item])[0]
+            [item] = decorate_permission(self.name, [item])
         try:
             group_.add(item, comment)
             return True
@@ -239,9 +243,10 @@ class PluginHandler:
         if group_ is None:
             return False
         if item.startswith('-'):
-            item = '-' + self._parse_perm([item[1:]])[0]
+            [item] = decorate_permission(self.name, [item[1:]])
+            item = '-' + item
         else:
-            item = self._parse_perm([item])[0]
+            [item] = decorate_permission(self.name, [item])
         try:
             group_.remove(item)
             return True
@@ -358,17 +363,3 @@ class PluginHandler:
             get_namespace(namespace, False).add_group(group)
             group_, _ = get(namespace, group)
         return group_
-
-    def _parse_perm(self, perm: Iterable[str]) -> List[str]:
-        result = []
-        for p in perm:
-            if not p:
-                result.append(self.name)
-            elif p.startswith('/'):
-                result.append(p[1:])
-            elif p.startswith('.'):
-                prev = result[-1] if result else self.name
-                result.append(prev + p)
-            else:
-                result.append(self.name + '.' + p)
-        return result
