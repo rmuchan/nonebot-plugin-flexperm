@@ -335,7 +335,7 @@ class PermissionGroup:
         self.referer = referer or self
 
         for parent in desc.inherits:
-            namespace, group = parse_qualified_group_name(parent)
+            namespace, group = parse_qualified_group_name(parent, self.namespace.name)
             res, found = get(namespace, group, self, True)
             if found:
                 self.inherits.append(res)
@@ -434,7 +434,7 @@ class PermissionGroup:
 
             inherits: CommentedSeq = desc.setdefault('inherits', CommentedSeq())
             possible_decls = [target.qualified_name()]
-            if target.namespace is loaded['global']:
+            if target.namespace is self.namespace:
                 possible_decls.append(target.name)
             for decl in possible_decls:
                 with contextlib.suppress(ValueError):
