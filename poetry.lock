@@ -2,7 +2,7 @@
 name = "anyio"
 version = "3.3.0"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
-noncategory = "main"
+category = "main"
 optional = false
 python-versions = ">=3.6.2"
 
