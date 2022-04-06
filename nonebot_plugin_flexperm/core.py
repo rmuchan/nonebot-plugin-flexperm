@@ -277,14 +277,13 @@ class PermissionGroup:
     # 仅在加载过程中有效，加载完成后恢复None。该权限组的引用者，若没有引用者则指向自己。
     referer: Optional["PermissionGroup"] = None
 
-    def __init__(self, namespace: Optional[Namespace], name: Union[str, int]):
+    def __init__(self, namespace: Namespace, name: Union[str, int]):
         self.namespace = namespace
-        if namespace is not None:
-            self.name = name
-            self.denies: Set[str] = set()
-            self.allows: Set[str] = set()
-            self.inherits: List[PermissionGroup] = []
-            self.cache: OrderedDict[str, CheckResult] = OrderedDict()
+        self.name = name
+        self.denies: Set[str] = set()
+        self.allows: Set[str] = set()
+        self.inherits: List[PermissionGroup] = []
+        self.cache: OrderedDict[str, CheckResult] = OrderedDict()
 
     def __repr__(self):
         return f'<PermissionGroup {self.qualified_name()}>'
@@ -513,6 +512,9 @@ if TYPE_CHECKING:
 
 else:
     class NullPermissionGroup:
+        referer = None
+        namespace = None
+
         def __init__(self):
             pass
 
