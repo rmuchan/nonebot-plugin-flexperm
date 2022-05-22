@@ -34,7 +34,9 @@ pip install nonebot-plugin-flexperm
 
 ```python
 from nonebot import require
-P = require("nonebot_plugin_flexperm").register("my_plugin")
+require("nonebot_plugin_flexperm")
+from nonebot_plugin_flexperm import register
+P = register("my_plugin")
 ```
 
 `P`是一个可调用对象，以权限名为参数调用即可得到相应的检查器。`P`的其他接口详见[接口文档](docs/interface.md)。

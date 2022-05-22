@@ -16,23 +16,27 @@
 
 ```python
 from nonebot import require
-P = require("nonebot_plugin_flexperm").register("my_plugin")
+require("nonebot_plugin_flexperm")
+from nonebot_plugin_flexperm import register
+P = register("my_plugin")
 ```
+
+注意：`import`之前调用`require`是必须的。为了避免不同来源分别加载本插件导致配置文件管理混乱，本插件被设计为**不允许通过`import`加载**。
 
 扩展阅读：[权限名称修饰](#权限名称修饰)。
 
+ps. 旧版本 NoneBot 的 export/require 方式仍可用，但既然官方不推荐我就不给例子了（
+
 ### 类型标注
 
-本插件在`__init__.pyi`文件中提供了`PluginHandler`类的接口说明，可用于支持 IDE 的代码提示、自动补全等功能。可以通过下面的方式使用：
+本插件在`__init__.pyi`文件中提供了`PluginHandler`类的接口说明，可用于支持 IDE 的代码提示、自动补全等功能。
+
+`register`函数已添加相应的类型标注，一般来说IDE可以自动识别。如果不行，也可以通过下面的方式手动标注：
 
 ```python
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from nonebot_plugin_flexperm import PluginHandler
-P: "PluginHandler" = require("nonebot_plugin_flexperm").register("my_plugin")
+from nonebot_plugin_flexperm import PluginHandler
+P: PluginHandler = register("my_plugin")
 ```
-
-注意：检查`TYPE_CHECKING`是必须的。为了避免不同来源多次加载本插件导致配置文件管理混乱，本插件被设计为**不允许直接`import`**。
 
 ## PluginHandler
 
