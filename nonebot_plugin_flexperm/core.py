@@ -113,7 +113,8 @@ def save_all() -> bool:
 
 
 try:
-    sched = nonebot.require('nonebot_plugin_apscheduler').scheduler
+    nonebot.require('nonebot_plugin_apscheduler')
+    from nonebot_plugin_apscheduler import scheduler as sched
     sched.add_job(save_all, 'interval', minutes=5, coalesce=True,
                   id='flexperm.save', replace_existing=True)
 except (RuntimeError, AttributeError, TypeError):

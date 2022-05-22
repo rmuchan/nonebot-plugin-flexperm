@@ -15,6 +15,7 @@ nonebot-adapter-onebot = "^2.0.0b1"
 "ruamel.yaml" = "^0.17.10"
 
 [tool.poetry.dev-dependencies]
+nonebot-plugin-apscheduler = "^0.1.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
