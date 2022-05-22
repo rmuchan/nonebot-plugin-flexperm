@@ -6,8 +6,8 @@ from nonebot.adapters import Event
 from nonebot.log import logger
 from nonebot.matcher import current_event
 from nonebot.permission import Permission
-from nonebot.plugin.export import export
 
+from .config import c
 from .check import check, get_permission_group_by_event
 from .core import get, get_namespace, PermissionGroup, decorate_permission, parse_qualified_group_name
 
@@ -17,7 +17,6 @@ _sentinel = object()
 Designator = Union[Event, str, None]
 
 
-@export()
 def register(plugin_name: str) -> "PluginHandler":
     """
     注册插件，并获取交互对象。
@@ -33,6 +32,11 @@ def register(plugin_name: str) -> "PluginHandler":
     handler = PluginHandler(plugin_name)
     plugins[plugin_name] = handler
     return handler
+
+
+if c.flexperm_export:
+    from nonebot.plugin.export import export
+    export()(register)
 
 
 class PluginHandler:
