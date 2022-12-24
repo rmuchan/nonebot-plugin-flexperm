@@ -1,8 +1,8 @@
 from nonebot import CommandGroup
 from nonebot.adapters import Bot, Message
 from nonebot.adapters.onebot.v11 import MessageEvent
-from nonebot.params import CommandArg, State, RawCommand, EventMessage
-
+from nonebot.params import CommandArg, RawCommand, EventMessage
+from nonebot.typing import T_State
 from . import core
 from .plugin import register
 
@@ -47,7 +47,7 @@ async def _(bot: Bot, event: MessageEvent):
 
 @h(cg.command('add', rule=ensure_command, permission=P('edit.perm'), state={'add': True}))
 @h(cg.command('remove', rule=ensure_command, permission=P('edit.perm'), state={'add': False}))
-async def _(bot: Bot, event: MessageEvent, state: dict = State(),
+async def _(bot: Bot, event: MessageEvent, state: T_State,
             raw_command: str = RawCommand(), arg: Message = CommandArg()):
     args = str(arg).split()
 
@@ -85,7 +85,7 @@ async def _(bot: Bot, event: MessageEvent, state: dict = State(),
 
 @h(cg.command('addinh', rule=ensure_command, permission=P('edit.inherit'), state={'add': True}))
 @h(cg.command('rminh', rule=ensure_command, permission=P('edit.inherit'), state={'add': False}))
-async def _(bot: Bot, event: MessageEvent, state: dict = State(),
+async def _(bot: Bot, event: MessageEvent, state: T_State,
             raw_command: str = RawCommand(), arg: Message = CommandArg()):
     args = str(arg).split()
 
@@ -120,7 +120,7 @@ async def _(bot: Bot, event: MessageEvent, state: dict = State(),
 @h(cg.command('addgrp', rule=ensure_command, permission=P('edit.group'), state={'add': True}))
 @h(cg.command('rmgrp', rule=ensure_command, permission=P('edit.group'), state={'add': False, 'force': False}))
 @h(cg.command('rmgrpf', rule=ensure_command, permission=P('edit.group.force'), state={'add': False, 'force': True}))
-async def _(bot: Bot, event: MessageEvent, state: dict = State(),
+async def _(bot: Bot, event: MessageEvent, state: T_State,
             raw_command: str = RawCommand(), arg: Message = CommandArg()):
     arg = str(arg).strip()
 

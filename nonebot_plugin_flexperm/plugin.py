@@ -7,7 +7,6 @@ from nonebot.log import logger
 from nonebot.matcher import current_event
 from nonebot.permission import Permission
 
-from .config import c
 from .check import check, get_permission_group_by_event
 from .core import get, get_namespace, PermissionGroup, decorate_permission, parse_qualified_group_name
 
@@ -32,11 +31,6 @@ def register(plugin_name: str) -> "PluginHandler":
     handler = PluginHandler(plugin_name)
     plugins[plugin_name] = handler
     return handler
-
-
-if c.flexperm_export:
-    from nonebot.plugin.export import export
-    export()(register)
 
 
 class PluginHandler:

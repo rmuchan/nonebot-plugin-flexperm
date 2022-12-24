@@ -12,6 +12,9 @@ from ruamel.yaml import YAML, YAMLError, CommentedMap, CommentedSeq
 
 from .config import c
 
+nonebot.require('nonebot_plugin_apscheduler')
+from nonebot_plugin_apscheduler import scheduler
+
 yaml = YAML()
 nonebot_driver = nonebot.get_driver()
 
@@ -94,6 +97,7 @@ def reload(force: bool = False) -> bool:
 
 
 @nonebot_driver.on_shutdown
+@scheduler.scheduled_job('interval', minutes=5, coalesce=True, id='flexperm.save')
 def save_all() -> bool:
     """
     保存所有权限配置。
@@ -110,24 +114,6 @@ def save_all() -> bool:
             failed = True
             logger.exception('Failed to save namespace {}', k)
     return not failed
-
-
-try:
-    nonebot.require('nonebot_plugin_apscheduler')
-    from nonebot_plugin_apscheduler import scheduler as sched
-    sched.add_job(save_all, 'interval', minutes=5, coalesce=True,
-                  id='flexperm.save', replace_existing=True)
-except (RuntimeError, AttributeError, TypeError):
-    @nonebot_driver.on_startup
-    def _():
-        import asyncio
-
-        async def save_timer():
-            while True:
-                await asyncio.sleep(5 * 60)
-                save_all()
-
-        asyncio.create_task(save_timer())
 
 
 class Namespace:

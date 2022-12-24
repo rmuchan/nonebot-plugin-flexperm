@@ -25,8 +25,6 @@ P = register("my_plugin")
 
 扩展阅读：[权限名称修饰](#权限名称修饰)。
 
-ps. 旧版本 NoneBot 的 export/require 方式仍可用，但既然官方不推荐我就不给例子了（
-
 ### 类型标注
 
 本插件在`__init__.pyi`文件中提供了`PluginHandler`类的接口说明，可用于支持 IDE 的代码提示、自动补全等功能。
