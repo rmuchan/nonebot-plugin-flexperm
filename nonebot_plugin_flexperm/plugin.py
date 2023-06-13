@@ -344,13 +344,13 @@ class PluginHandler:
     @classmethod
     def _get_or_create_group(cls, designator: Designator, silent: bool, create: bool, default_namespace: str = 'global'
                              ) -> Optional[PermissionGroup]:
-        namespace, group = cls._parse_designator(designator, default_namespace)
-        group_, found = get(namespace, group)
-        if not found:
+        namespace, group_name = cls._parse_designator(designator, default_namespace)
+        group = get(namespace, group_name)
+        if not group.is_valid:
             if not silent:
                 raise KeyError('No such group')
             if not create:
                 return None
-            get_namespace(namespace, False).add_group(group)
-            group_, _ = get(namespace, group)
-        return group_
+            get_namespace(namespace, False).add_group(group_name)
+            group = get(namespace, group_name)
+        return group

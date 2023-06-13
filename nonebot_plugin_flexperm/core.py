@@ -24,7 +24,8 @@ plugin_namespaces: List["Namespace"] = []
 default_groups: Set[str] = set()
 
 
-def get(namespace: str, group: Union[str, int], referer: "PermissionGroup" = None, required: bool = False):
+def get(namespace: str, group: Union[str, int], referer: "PermissionGroup" = None, required: bool = False
+        ) -> "PermissionGroup":
     """
     获取权限组。
 
@@ -32,9 +33,7 @@ def get(namespace: str, group: Union[str, int], referer: "PermissionGroup" = Non
     :param group: 组名。
     :param referer: 引用者。
     :param required: 权限组不存在时是否报错。若存在但有其他问题，则无论该参数设置，都会报错。
-    :return:
-        [0] 权限组，若失败则返回一个空组。 <br>
-        [1] 是否成功。
+    :return: 权限组，若失败则返回一个空组。
     """
     return get_namespace(namespace, required).get_group(group, referer, required)
 
@@ -158,7 +157,7 @@ class Namespace:
             self.dirty = False
 
     def get_group(self, name: Union[str, int], referer: Optional["PermissionGroup"], required: bool
-                  ) -> Tuple["PermissionGroup", bool]:
+                  ) -> "PermissionGroup":
         """
         获取本名称空间下的权限组。
 
@@ -172,7 +171,7 @@ class Namespace:
         group = self.groups.get(name)
         if group is not None:
             if not group.referer:
-                return group, group.namespace is not None
+                return group
 
             cycle = [f'{self.name}:{name}']
             it = referer
@@ -181,14 +180,14 @@ class Namespace:
                 it = it.referer
             cycle.append(f'{self.name}:{name}')
             logger.error('Inheritance cycle detected: {}', ' -> '.join(reversed(cycle)))
-            return NullPermissionGroup(), False
+            return NullPermissionGroup()
 
-        group, found = self._get_group_uncached(name, referer, required)
+        group = self._get_group_uncached(name, referer, required)
         self.groups[name] = group
-        return group, found
+        return group
 
     def _get_group_uncached(self, name: Union[str, int], referer: Optional["PermissionGroup"], required: bool
-                            ) -> Tuple["PermissionGroup", bool]:
+                            ) -> "PermissionGroup":
         group_desc = self.config.get(name)
         if group_desc is None:
             if required:
@@ -197,13 +196,13 @@ class Namespace:
                                  self.name, name, referer.qualified_name())
                 else:
                     logger.error('Permission group {}:{} not found', self.name, name)
-            return NullPermissionGroup(), False
+            return NullPermissionGroup()
 
         try:
             desc = parse_obj_as(GroupDesc, group_desc)
         except ValueError:
             logger.exception('Failed to parse {}:{} ({})', self.name, name, self.path)
-            return NullPermissionGroup(), False
+            return NullPermissionGroup()
 
         # 注入插件预设
         if self.name == 'global' and name in default_groups:
@@ -213,7 +212,7 @@ class Namespace:
 
         self.groups[name] = group = PermissionGroup(self, name)
         group.populate(desc, referer, self.name if self.auto_decorate else None)
-        return group, True
+        return group
 
     @contextmanager
     def modifying(self, name: Union[str, int] = None):
@@ -263,6 +262,7 @@ class PermissionGroup:
 
     # 仅在加载过程中有效，加载完成后恢复None。该权限组的引用者，若没有引用者则指向自己。
     referer: Optional["PermissionGroup"] = None
+    is_valid: bool = True
 
     def __init__(self, namespace: Namespace, name: Union[str, int]):
         self.namespace = namespace
@@ -322,8 +322,8 @@ class PermissionGroup:
 
         for parent in desc.inherits:
             namespace, group = parse_qualified_group_name(parent, self.namespace.name)
-            res, found = get(namespace, group, self, True)
-            if found:
+            res = get(namespace, group, self, True)
+            if res.is_valid:
                 self.inherits.append(res)
 
         for item in desc.permissions:
@@ -501,6 +501,7 @@ else:
     class NullPermissionGroup:
         referer = None
         namespace = None
+        is_valid = False
 
         def __init__(self):
             pass

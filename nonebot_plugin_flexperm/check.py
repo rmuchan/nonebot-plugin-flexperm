@@ -31,37 +31,29 @@ def get_permission_group_by_event(event: Event) -> Optional[Tuple[str, int]]:
 def iterate_groups(event: Event) -> Iterable[PermissionGroup]:
     # 特定用户
     user = getattr(event, 'user_id', None) or int(event.get_user_id())
-    group, _ = get('user', user)
-    yield group
+    yield get('user', user)
 
     # Bot超级用户
     if event.get_user_id() in get_driver().config.superusers:
-        group, _ = get('global', 'superuser')
-        yield group
+        yield get('global', 'superuser')
 
     # 所有用户
-    group, _ = get('global', 'anyone')
-    yield group
+    yield get('global', 'anyone')
 
     # 群组
     if isinstance(event, GroupMessageEvent):
         # 用户在群组内的身份
         if event.sender.role == 'admin':
-            group, _ = get('global', 'group_admin')
-            yield group
+            yield get('global', 'group_admin')
         elif event.sender.role == 'owner':
-            group, _ = get('global', 'group_owner')
-            yield group
+            yield get('global', 'group_owner')
 
         # 特定群组
-        group, _ = get('group', event.group_id)
-        yield group
+        yield get('group', event.group_id)
 
         # 所有群组
-        group, _ = get('global', 'group')
-        yield group
+        yield get('global', 'group')
 
     # 私聊
     if isinstance(event, PrivateMessageEvent):
-        group, _ = get('global', 'private')
-        yield group
+        yield get('global', 'private')
