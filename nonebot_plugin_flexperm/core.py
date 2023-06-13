@@ -140,11 +140,11 @@ class Namespace:
                 doc = yaml.load(path)
             except (OSError, YAMLError):
                 logger.exception('Failed to load namespace {} ({})', namespace, path)
-                doc = {}
+                doc = CommentedMap()
 
             if not isinstance(doc, CommentedMap):
                 logger.error('Expect a dict: {} ({})', namespace, path)
-                doc = {}
+                doc = CommentedMap()
 
             self.config: CommentedMap[Union[str, int], dict] = doc
 
