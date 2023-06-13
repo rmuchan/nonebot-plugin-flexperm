@@ -68,3 +68,21 @@ class OnebotV11(AdapterHandler):
     def get_group_role(self, event: Event) -> Optional[str]:
         if isinstance(event, self.onebot.GroupMessageEvent):
             return event.sender.role
+
+
+class Kaiheila(AdapterHandler):
+    adapter = 'Kaiheila'
+
+    def __init__(self):
+        import nonebot.adapters.kaiheila as kaiheila
+        self.kaiheila = kaiheila
+
+    def is_private_chat(self, event: Event) -> bool:
+        return isinstance(event, self.kaiheila.event.PrivateMessageEvent)
+
+    def get_group_id(self, event: Event) -> Union[int, str, None]:
+        if isinstance(event, self.kaiheila.event.ChannelMessageEvent):
+            return event.group_id
+
+    def get_group_role(self, event: Event) -> Optional[str]:
+        return

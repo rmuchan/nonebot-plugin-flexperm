@@ -26,7 +26,7 @@ pip install nonebot-plugin-flexperm
 
 ## 依赖
 
-目前只支持 OneBot V11 协议，之后可能会支持其他协议。
+依赖`nonebot^2.0.0`，支持的协议见[这里](docs/adapters.md)。
 
 ## 使用
 
