@@ -78,10 +78,11 @@ group_admin:
 
 ## 配置
 
-本插件使用2个配置项，均为可选。如需修改，写入 NoneBot 项目环境文件`.env.*`即可。
+本插件使用3个配置项，均为可选。如需修改，写入 NoneBot 项目环境文件`.env.*`即可。
 
 - `flexperm_base`: 权限配置文件所在目录，默认为`permissions`。
 - `flexperm_debug_check`: 是否输出检查权限过程中的调试信息，默认为`false`。未启用 NoneBot 的调试模式时无效。
+- `flexperm_default_adapter`: 检查基于用户ID的权限配置时的默认适配器名，不区分大小写，默认为`onebot`。
 
 ## 鸣谢
 

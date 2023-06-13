@@ -66,6 +66,7 @@ cmd = on_command("my_command", permission=P("my_command"))
 参数：
 
 - `*perm: str`，需要检查的权限，若传入多个则须全部满足。
+- `bot: Bot = None`，机器人，默认为当前正在处理事件的机器人。
 - `event: Event = None`，事件，默认为当前正在处理的事件。
 
 返回类型：`bool`

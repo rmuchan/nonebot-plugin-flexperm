@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, overload
 
-from nonebot.adapters import Event
+from nonebot.adapters import Bot, Event
 from nonebot.permission import Permission
 
 Designator = Union[Event, str, None]
@@ -48,11 +48,12 @@ class PluginHandler:
         :return: 权限检查器，可以直接传递给 nonebot 事件响应器。
         """
 
-    def has(self, *perm: str, event: Event = None) -> bool:
+    def has(self, *perm: str, bot: Bot = None, event: Event = None) -> bool:
         """
         检查事件是否具有指定权限。会修饰权限名，详见 __call__ 。不会自动检查根权限，无论是否设置 check_root 。
 
         :param perm: 权限名，若传入多个权限则须同时满足。
+        :param bot: 机器人，默认为当前正在处理事件的机器人。
         :param event: 事件，默认为当前正在处理的事件。
         :return: 检查结果。
         """

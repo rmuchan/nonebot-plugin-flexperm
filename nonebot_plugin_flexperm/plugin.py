@@ -2,9 +2,9 @@ import contextlib
 from pathlib import Path
 from typing import Optional, Dict, Union, Tuple
 
-from nonebot.adapters import Event
+from nonebot.adapters import Bot, Event
 from nonebot.log import logger
-from nonebot.matcher import current_event
+from nonebot.matcher import current_bot, current_event
 from nonebot.permission import Permission
 
 from .check import check, get_permission_group_by_event
@@ -85,26 +85,29 @@ class PluginHandler:
         if len(full) == 1:
             single = full[0]
 
-            async def _check(event):
-                return check(event, single)
+            async def _check(bot: Bot, event: Event):
+                return check(bot, event, single)
         else:
-            async def _check(event):
-                return all(check(event, px) for px in full)
+            async def _check(bot: Bot, event: Event):
+                return all(check(bot, event, px) for px in full)
 
         return Permission(_check)
 
-    def has(self, *perm: str, event: Event = None) -> bool:
+    def has(self, *perm: str, bot: Bot = None, event: Event = None) -> bool:
         """
         检查事件是否具有指定权限。会修饰权限名，详见 __call__ 。不会自动检查根权限，无论是否设置 check_root 。
 
         :param perm: 权限名，若传入多个权限则须同时满足。
+        :param bot: 机器人，默认为当前正在处理事件的机器人。
         :param event: 事件，默认为当前正在处理的事件。
         :return: 检查结果。
         """
+        if bot is None or event is None:
+            bot = current_bot.get()
         if event is None:
             event = current_event.get()
         full = decorate_permission(self.name, perm)
-        return all(check(event, px) for px in full)
+        return all(check(bot, event, px) for px in full)
 
     def add_permission(self, designator: Designator, perm: str = _sentinel, *,
                        comment: str = None, create_group: bool = True) -> bool:
@@ -333,7 +336,8 @@ class PluginHandler:
         if designator is None:
             designator = current_event.get()
         if isinstance(designator, Event):
-            result = get_permission_group_by_event(designator)
+            bot = current_bot.get()
+            result = get_permission_group_by_event(bot, designator)
             if result is not None:
                 return result
             raise ValueError('Unrecognized event type: ' + designator.get_event_name())

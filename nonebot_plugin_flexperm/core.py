@@ -11,6 +11,7 @@ from pydantic import BaseModel, parse_obj_as
 from ruamel.yaml import YAML, YAMLError, CommentedMap, CommentedSeq
 
 from .config import c
+from .util import try_int
 
 nonebot.require('nonebot_plugin_apscheduler')
 from nonebot_plugin_apscheduler import scheduler
@@ -472,8 +473,7 @@ def parse_qualified_group_name(qn: str, default_namespace: str = 'global') -> Tu
     else:
         namespace, group = split
     if namespace in ['group', 'user']:
-        with contextlib.suppress(ValueError):
-            group = int(group)
+        group = try_int(group)
     return namespace, group
 
 

@@ -1,17 +1,18 @@
-from typing import Iterable, Tuple, Optional
+from typing import Iterable, Tuple, Optional, Union
 
-from nonebot import logger, get_driver
-from nonebot.adapters import Event
-from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent
+from nonebot import logger
+from nonebot.adapters import Bot, Event
 
+from .adapters import handler_for
 from .config import c
 from .core import get, CheckResult, PermissionGroup
+from .util import try_int
 
 
-def check(event: Event, perm: str) -> bool:
+def check(bot: Bot, event: Event, perm: str) -> bool:
     if c.flexperm_debug_check:
         logger.debug('Checking {}', perm)
-    for group in iterate_groups(event):
+    for group in iterate_groups(bot, event):
         r = group.check(perm)
         if c.flexperm_debug_check:
             logger.debug('Got {} from {}', r, group)
@@ -21,39 +22,68 @@ def check(event: Event, perm: str) -> bool:
     return False
 
 
-def get_permission_group_by_event(event: Event) -> Optional[Tuple[str, int]]:
-    if isinstance(event, GroupMessageEvent):
-        return 'group', event.group_id
-    if isinstance(event, PrivateMessageEvent):
-        return 'user', event.user_id
+def get_permission_group_by_event(bot: Bot, event: Event) -> Optional[Tuple[str, Union[str, int]]]:
+    h = handler_for(bot.adapter.get_name())
+    adapter = bot.adapter.get_name().split(maxsplit=1)[0].lower()
+    is_default_adapter = (adapter == c.flexperm_default_adapter.lower())
+
+    if (group_id := h.get_group_id(event)) is not None:
+        gn = group_id if is_default_adapter else f'{adapter}:{group_id}'
+        return 'group', gn
+    if h.is_private_chat(event):
+        uid = event.get_user_id()
+        un = try_int(uid) if is_default_adapter else f'{adapter}:{uid}'
+        return 'user', un
 
 
-def iterate_groups(event: Event) -> Iterable[PermissionGroup]:
+def iterate_groups(bot: Bot, event: Event) -> Iterable[PermissionGroup]:
+    h = handler_for(bot.adapter.get_name())
+    adapter = bot.adapter.get_name().split(maxsplit=1)[0].lower()
+    is_default_adapter = (adapter == c.flexperm_default_adapter.lower())
+
     # 特定用户
-    user = getattr(event, 'user_id', None) or int(event.get_user_id())
-    yield get('user', user)
+    user_id = event.get_user_id()
+    group = get('user', try_int(user_id)) if is_default_adapter else None
+    if not (is_default_adapter and group.is_valid):
+        group = get('user', f'{adapter}:{user_id}')
+    yield group
 
     # Bot超级用户
-    if event.get_user_id() in get_driver().config.superusers:
+    if is_superuser(bot, event):
         yield get('global', 'superuser')
 
     # 所有用户
     yield get('global', 'anyone')
 
     # 群组
-    if isinstance(event, GroupMessageEvent):
+    if (group_id := h.get_group_id(event)) is not None:
         # 用户在群组内的身份
-        if event.sender.role == 'admin':
+        role = h.get_group_role(event)
+        if role == 'admin':
             yield get('global', 'group_admin')
-        elif event.sender.role == 'owner':
+        elif role == 'owner':
             yield get('global', 'group_owner')
 
         # 特定群组
-        yield get('group', event.group_id)
+        group = get('group', try_int(group_id)) if is_default_adapter else None
+        if not (is_default_adapter and group.is_valid):
+            group = get('group', f'{adapter}:{group_id}')
+        yield group
 
         # 所有群组
         yield get('global', 'group')
 
     # 私聊
-    if isinstance(event, PrivateMessageEvent):
+    if h.is_private_chat(event):
         yield get('global', 'private')
+
+
+def is_superuser(bot: Bot, event: Event):
+    try:
+        user_id = event.get_user_id()
+    except Exception:
+        return False
+    return (
+        f"{bot.adapter.get_name().split(maxsplit=1)[0].lower()}:{user_id}" in bot.config.superusers
+        or user_id in bot.config.superusers
+    )
